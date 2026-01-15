@@ -101,6 +101,10 @@ class AdminService {
         return response.data;
     }
 
+    async sendPartnerEmail(emailData: { email: string; subject: string; message: string }): Promise<any> {
+        const response = await api.post('/admin/partners/send-email', emailData);
+        return response.data;
+    }
 }
 
 export const adminService = new AdminService();

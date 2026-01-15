@@ -3,25 +3,59 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Edit2, Eye, Trash2, UserCheck, TrendingUp, DollarSign, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchAllPartners, updatePartner, deletePartner } from '../../../../store/slices/partnersSlice';
+import { fetchAllPartners, updatePartner, deletePartner, sendPartnerEmail } from '../../../../store/slices/partnersSlice';
+import EmailNotificationModal from '../../components/EmailNotificationModal';
+import ReusableTable from '../../../../components/shared/ReusableTable';
+import type { ColumnConfig } from '../../../../components/shared/ReusableTable';
 
 const PartnersList: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { partners, isLoading, error } = useAppSelector((state) => state.partners);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+    const [selectedPartnerForStatus, setSelectedPartnerForStatus] = useState<{ id: string; email: string; currentStatus: boolean } | null>(null);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     useEffect(() => {
         dispatch(fetchAllPartners());
     }, [dispatch]);
 
-    const handleStatusToggle = async (id: string, currentStatus: boolean) => {
-        const newStatus = !currentStatus;
+    const handleStatusToggle = (id: string, currentStatus: boolean, email: string) => {
+        setSelectedPartnerForStatus({ id, email, currentStatus });
+        setIsEmailModalOpen(true);
+    };
+
+    const handleEmailSubmit = async (subject: string, message: string) => {
+        if (!selectedPartnerForStatus) return;
+
+        setIsSendingEmail(true);
         try {
-            await dispatch(updatePartner({ partnerId: id, partnerData: { isActive: newStatus } })).unwrap();
+            // 1. Send Email
+            await dispatch(sendPartnerEmail({
+                email: selectedPartnerForStatus.email,
+                subject,
+                message
+            })).unwrap();
+
+            toast.success('Email sent successfully');
+
+            // 2. Update Status
+            const newStatus = !selectedPartnerForStatus.currentStatus;
+            await dispatch(updatePartner({
+                partnerId: selectedPartnerForStatus.id,
+                partnerData: { isActive: newStatus }
+            })).unwrap();
+
             toast.success(newStatus ? 'Partner activated' : 'Partner deactivated');
+
+            // 3. Close Modal and Reset
+            setIsEmailModalOpen(false);
+            setSelectedPartnerForStatus(null);
         } catch (err) {
-            toast.error('Failed to update partner status');
+            toast.error(typeof err === 'string' ? err : 'Failed to complete operation');
+        } finally {
+            setIsSendingEmail(false);
         }
     };
 
@@ -52,6 +86,128 @@ const PartnersList: React.FC = () => {
     const totalRevenue = partners.reduce((sum, partner) => sum + (partner.totalAmount || 0), 0);
     const activePartners = partners.filter(p => p.isActive).length;
 
+    // Column configuration for ReusableTable
+    const columns: ColumnConfig<typeof partners[0]>[] = [
+        {
+            header: '#',
+            key: 'index',
+            render: (_, index) => <span className="text-gray-600 font-medium">{index + 1}</span>
+        },
+        {
+            header: 'Partner',
+            key: 'partner',
+            render: (partner) => (
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 flex-shrink-0 border-2 border-white shadow-md">
+                            <img
+                                src={partner.profilePicture || partner.profileImage || '/profile3.png'}
+                                alt={partner.fullName}
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/profile3.png'; }}
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
+                        <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${partner.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-gray-800">{partner.fullName}</p>
+                    </div>
+                </div>
+            )
+        },
+        {
+            header: 'Contact',
+            key: 'contact',
+            render: (partner) => (
+                <div className="space-y-1">
+                    <p className="text-sm text-gray-800">{partner.email}</p>
+                    <p className="text-sm text-gray-500">{partner.phone}</p>
+                </div>
+            )
+        },
+        {
+            header: 'Bookings',
+            key: 'bookings',
+            render: (partner) => (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
+                    {partner.totalOrders || 0}
+                </span>
+            )
+        },
+        {
+            header: 'Revenue',
+            key: 'revenue',
+            render: (partner) => (
+                <span className="text-emerald-600 font-bold">₹{partner.totalAmount?.toFixed(2) || 0}</span>
+            )
+        },
+        {
+            header: 'Status',
+            key: 'status',
+            render: (partner) => {
+                const partnerId = partner._id || partner.id || partner.partnerId;
+                return (
+                    <label
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative inline-flex items-center cursor-pointer group"
+                    >
+                        <input
+                            type="checkbox"
+                            checked={partner.isActive}
+                            onChange={() => handleStatusToggle(partnerId, partner.isActive, partner.email)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="sr-only peer"
+                        />
+                        <div className={`w-14 h-7 rounded-full transition-all peer-checked:bg-gradient-to-r peer-checked:from-green-400 peer-checked:to-green-500 bg-gradient-to-r from-gray-300 to-gray-400 shadow-inner`}>
+                            <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${partner.isActive ? 'translate-x-7' : 'translate-x-0'}`} />
+                        </div>
+                    </label>
+                );
+            }
+        },
+        {
+            header: 'Actions',
+            key: 'actions',
+            render: (partner) => {
+                const partnerId = partner._id || partner.id || partner.partnerId;
+                return (
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewPartner(partnerId);
+                            }}
+                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all hover:scale-110"
+                            title="View Details"
+                        >
+                            <Eye size={18} />
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                // Optional: Open edit modal
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all hover:scale-110"
+                            title="Edit"
+                        >
+                            <Edit2 size={18} />
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(partnerId);
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all hover:scale-110"
+                            title="Delete"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    </div>
+                );
+            }
+        }
+    ];
+
     const SkeletonCard = () => (
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 animate-pulse">
             <div className="flex items-center justify-between">
@@ -63,32 +219,6 @@ const PartnersList: React.FC = () => {
                 <div className="bg-gray-200 rounded-2xl p-4 w-16 h-16"></div>
             </div>
         </div>
-    );
-
-    const SkeletonRow = () => (
-        <tr className="animate-pulse">
-            <td className="py-4 px-6"><div className="h-4 bg-gray-200 rounded w-8"></div></td>
-            <td className="py-4 px-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gray-200"></div>
-                    <div className="h-4 bg-gray-200 rounded w-32"></div>
-                </div>
-            </td>
-            <td className="py-4 px-6">
-                <div className="space-y-2">
-                    <div className="h-3 bg-gray-200 rounded w-40"></div>
-                    <div className="h-3 bg-gray-200 rounded w-32"></div>
-                </div>
-            </td>
-            <td className="py-4 px-6"><div className="h-6 bg-gray-200 rounded-full w-12"></div></td>
-            <td className="py-4 px-6"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
-            <td className="py-4 px-6"><div className="h-7 bg-gray-200 rounded-full w-14"></div></td>
-            <td className="py-4 px-6">
-                <div className="flex gap-2">
-                    <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
-                </div>
-            </td>
-        </tr>
     );
 
     if (isLoading) {
@@ -116,28 +246,13 @@ const PartnersList: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full">
-                            <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
-                                <tr>
-                                    <th className="py-4 px-6 text-left"><div className="h-3 bg-gray-300 rounded w-8"></div></th>
-                                    <th className="py-4 px-6 text-left"><div className="h-3 bg-gray-300 rounded w-20"></div></th>
-                                    <th className="py-4 px-6 text-left"><div className="h-3 bg-gray-300 rounded w-16"></div></th>
-                                    <th className="py-4 px-6 text-left"><div className="h-3 bg-gray-300 rounded w-16"></div></th>
-                                    <th className="py-4 px-6 text-left"><div className="h-3 bg-gray-300 rounded w-12"></div></th>
-                                    <th className="py-4 px-6 text-left"><div className="h-3 bg-gray-300 rounded w-16"></div></th>
-                                    <th className="py-4 px-6 text-left"><div className="h-3 bg-gray-300 rounded w-16"></div></th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                <SkeletonRow />
-                                <SkeletonRow />
-                                <SkeletonRow />
-                                <SkeletonRow />
-                                <SkeletonRow />
-                            </tbody>
-                        </table>
-                    </div>
+                    <ReusableTable
+                        columns={columns}
+                        data={[]}
+                        isLoading={true}
+                        keyExtractor={() => ''}
+                        emptyMessage="No partners found"
+                    />
                 </div>
             </div>
         );
@@ -243,127 +358,28 @@ const PartnersList: React.FC = () => {
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
-                            <tr>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">#</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Partner</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Bookings</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Revenue</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {filteredPartners.map((partner, index) => {
-                                const partnerId = partner._id || partner.id || partner.partnerId;
-                                return (
-                                    <tr
-                                        key={partnerId}
-                                        className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all cursor-pointer"
-                                        onClick={() => handleViewPartner(partnerId)}
-                                    >
-                                        <td className="py-4 px-6">
-                                            <span className="text-gray-600 font-medium">{index + 1}</span>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative">
-                                                    <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 flex-shrink-0 border-2 border-white shadow-md">
-                                                        <img
-                                                            src={partner.profilePicture || partner.profileImage || '/profile3.png'}
-                                                            alt={partner.fullName}
-                                                            onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/profile3.png'; }}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    </div>
-                                                    <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${partner.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-800">{partner.fullName}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <div className="space-y-1">
-                                                <p className="text-sm text-gray-800">{partner.email}</p>
-                                                <p className="text-sm text-gray-500">{partner.phone}</p>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
-                                                {partner.totalOrders || 0}
-                                            </span>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <span className="text-emerald-600 font-bold">₹{partner.totalAmount?.toFixed(2) || 0}</span>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <label
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="relative inline-flex items-center cursor-pointer group"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={partner.isActive}
-                                                    onChange={() => handleStatusToggle(partnerId, partner.isActive)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className={`w-14 h-7 rounded-full transition-all peer-checked:bg-gradient-to-r peer-checked:from-green-400 peer-checked:to-green-500 bg-gradient-to-r from-gray-300 to-gray-400 shadow-inner`}>
-                                                    <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${partner.isActive ? 'translate-x-7' : 'translate-x-0'}`} />
-                                                </div>
-                                            </label>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleViewPartner(partnerId);
-                                                    }}
-                                                    className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all hover:scale-110"
-                                                    title="View Details"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        // Optional: Open edit modal
-                                                    }}
-                                                    className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all hover:scale-110"
-                                                    title="Edit"
-                                                >
-                                                    <Edit2 size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDelete(partnerId);
-                                                    }}
-                                                    className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all hover:scale-110"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
-                {filteredPartners.length === 0 && (
-                    <div className="text-center py-12">
-                        <p className="text-gray-500 text-lg">No partners found</p>
-                    </div>
-                )}
+                <ReusableTable
+                    columns={columns}
+                    data={filteredPartners}
+                    isLoading={false}
+                    onRowClick={(partner) => {
+                        const partnerId = partner._id || partner.id || partner.partnerId;
+                        handleViewPartner(partnerId);
+                    }}
+                    keyExtractor={(partner) => partner._id || partner.id || partner.partnerId}
+                    emptyMessage="No partners found"
+                />
             </div>
+            <EmailNotificationModal
+                isOpen={isEmailModalOpen}
+                onClose={() => {
+                    setIsEmailModalOpen(false);
+                    setSelectedPartnerForStatus(null);
+                }}
+                onSubmit={handleEmailSubmit}
+                partnerEmail={selectedPartnerForStatus?.email || ''}
+                isSending={isSendingEmail}
+            />
         </div>
     );
 };

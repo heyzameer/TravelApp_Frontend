@@ -113,6 +113,18 @@ export const deletePartner = createAsyncThunk(
     }
 );
 
+export const sendPartnerEmail = createAsyncThunk(
+    'partners/sendEmail',
+    async (emailData: { email: string; subject: string; message: string }, { rejectWithValue }) => {
+        try {
+            const response = await adminService.sendPartnerEmail(emailData);
+            return response;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to send email');
+        }
+    }
+);
+
 const partnersSlice = createSlice({
     name: 'partners',
     initialState,
@@ -236,6 +248,20 @@ const partnersSlice = createSlice({
                 }
             })
             .addCase(deletePartner.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            });
+
+        // Send partner email
+        builder
+            .addCase(sendPartnerEmail.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(sendPartnerEmail.fulfilled, (state) => {
+                state.isLoading = false;
+            })
+            .addCase(sendPartnerEmail.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload as string;
             });

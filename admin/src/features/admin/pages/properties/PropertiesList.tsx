@@ -5,6 +5,8 @@ import { fetchAllProperties, togglePropertyStatus, deleteProperty } from '../../
 
 import { Search, Plus, Edit2, Trash2, Eye, MapPin, Home, Star, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import ReusableTable from '../../../../components/shared/ReusableTable';
+import type { ColumnConfig } from '../../../../components/shared/ReusableTable';
 
 const PropertiesList: React.FC = () => {
     const navigate = useNavigate();
@@ -55,7 +57,127 @@ const PropertiesList: React.FC = () => {
 
     const activeProperties = properties.filter(p => p.isActive || p.isAvailable).length;
     const totalProperties = properties.length;
-    // const averageRating = properties.reduce((acc, curr) => acc + (curr.rating || 0), 0) / totalProperties || 0;
+
+    // Column configuration for ReusableTable
+    const columns: ColumnConfig<typeof properties[0]>[] = [
+        {
+            header: 'Property',
+            key: 'property',
+            render: (property) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                        <img
+                            src={property.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200'}
+                            alt={property.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200' }}
+                        />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-gray-800">{property.name || 'Untitled Property'}</p>
+                        <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
+                            <Star size={12} fill="currentColor" />
+                            <span>{property.rating || 0} ({property.reviewsCount || 0})</span>
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            header: 'Location',
+            key: 'location',
+            render: (property) => (
+                <div className="flex items-center gap-1 text-gray-600 text-sm">
+                    <MapPin size={14} />
+                    <span className="truncate max-w-[150px]">{property.address || property.location?.address || 'N/A'}</span>
+                </div>
+            )
+        },
+        {
+            header: 'Owner',
+            key: 'owner',
+            render: (property) => (
+                <span className="text-gray-800 text-sm font-medium">
+                    {property.owner?.fullName || property.ownerName || 'Unknown'}
+                </span>
+            )
+        },
+        {
+            header: 'Price/Night',
+            key: 'price',
+            render: (property) => (
+                <span className="text-emerald-600 font-bold">
+                    ₹{property.price || property.pricePerNight || 0}
+                </span>
+            )
+        },
+        {
+            header: 'Status',
+            key: 'status',
+            render: (property) => {
+                const propertyId = property._id || property.id;
+                const isActive = property.isActive || property.isAvailable || false;
+                return (
+                    <label
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative inline-flex items-center cursor-pointer group"
+                    >
+                        <input
+                            type="checkbox"
+                            checked={isActive}
+                            onChange={() => handleToggleStatus(propertyId!, isActive)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="sr-only peer"
+                        />
+                        <div className={`w-14 h-7 rounded-full transition-all peer-checked:bg-gradient-to-r peer-checked:from-green-400 peer-checked:to-green-500 bg-gradient-to-r from-gray-300 to-gray-400 shadow-inner`}>
+                            <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${isActive ? 'translate-x-7' : 'translate-x-0'}`} />
+                        </div>
+                    </label>
+                );
+            }
+        },
+        {
+            header: 'Actions',
+            key: 'actions',
+            render: (property) => {
+                const propertyId = property._id || property.id;
+                return (
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewProperty(propertyId!);
+                            }}
+                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all hover:scale-110"
+                            title="View Details"
+                        >
+                            <Eye size={18} />
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditProperty(propertyId!);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all hover:scale-110"
+                            title="Edit"
+                        >
+                            <Edit2 size={18} />
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(propertyId!);
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all hover:scale-110"
+                            title="Delete"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    </div>
+                );
+            }
+        }
+    ];
 
     const SkeletonCard = () => (
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 animate-pulse">
@@ -187,126 +309,17 @@ const PropertiesList: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
-                            <tr>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Property</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Location</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Owner</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Price/Night</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {filteredProperties.map((property) => {
-                                const propertyId = property._id || property.id;
-                                const isActive = property.isActive || property.isAvailable || false;
-                                return (
-                                    <tr
-                                        key={propertyId}
-                                        className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all cursor-pointer"
-                                        onClick={() => handleViewProperty(propertyId!)}
-                                    >
-                                        <td className="py-4 px-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-                                                    <img
-                                                        src={property.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200'}
-                                                        alt={property.name}
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200' }}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-800">{property.name || 'Untitled Property'}</p>
-                                                    <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
-                                                        <Star size={12} fill="currentColor" />
-                                                        <span>{property.rating || 0} ({property.reviewsCount || 0})</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <div className="flex items-center gap-1 text-gray-600 text-sm">
-                                                <MapPin size={14} />
-                                                <span className="truncate max-w-[150px]">{property.address || property.location?.address || 'N/A'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <span className="text-gray-800 text-sm font-medium">
-                                                {property.owner?.fullName || property.ownerName || 'Unknown'}
-                                            </span>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <span className="text-emerald-600 font-bold">
-                                                ₹{property.price || property.pricePerNight || 0}
-                                            </span>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <label
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="relative inline-flex items-center cursor-pointer group"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isActive}
-                                                    onChange={() => handleToggleStatus(propertyId!, isActive)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className={`w-14 h-7 rounded-full transition-all peer-checked:bg-gradient-to-r peer-checked:from-green-400 peer-checked:to-green-500 bg-gradient-to-r from-gray-300 to-gray-400 shadow-inner`}>
-                                                    <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${isActive ? 'translate-x-7' : 'translate-x-0'}`} />
-                                                </div>
-                                            </label>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleViewProperty(propertyId!);
-                                                    }}
-                                                    className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all hover:scale-110"
-                                                    title="View Details"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleEditProperty(propertyId!);
-                                                    }}
-                                                    className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all hover:scale-110"
-                                                    title="Edit"
-                                                >
-                                                    <Edit2 size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDelete(propertyId!);
-                                                    }}
-                                                    className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all hover:scale-110"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
-                {filteredProperties.length === 0 && (
-                    <div className="text-center py-12">
-                        <p className="text-gray-500 text-lg">No properties found</p>
-                    </div>
-                )}
+                <ReusableTable
+                    columns={columns}
+                    data={filteredProperties}
+                    isLoading={false}
+                    onRowClick={(property) => {
+                        const propertyId = property._id || property.id;
+                        handleViewProperty(propertyId!);
+                    }}
+                    keyExtractor={(property) => property._id || property.id || ''}
+                    emptyMessage="No properties found"
+                />
             </div>
         </div>
     );
