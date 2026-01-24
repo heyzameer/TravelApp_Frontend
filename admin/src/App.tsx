@@ -3,12 +3,14 @@ import { Provider } from "react-redux";
 import { store, persistor } from "./store";
 import { DialogProvider } from "./utils/confirmDialog";
 import { Toaster } from "react-hot-toast";
+import SocketManager from "./SocketManager";
 import { PersistGate } from "redux-persist/integration/react";
 
 const App = () => {
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}></PersistGate>
+      <SocketManager />
       <DialogProvider>
         <Toaster
           position="top-center"

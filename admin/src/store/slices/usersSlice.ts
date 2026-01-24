@@ -53,7 +53,7 @@ export const fetchUserById = createAsyncThunk(
     async (userId: string, { rejectWithValue }) => {
         try {
             const response = await adminService.getUserById(userId);
-            return response.user;
+            return response.data?.user || response.user;
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch user');
         }
@@ -106,7 +106,7 @@ const usersSlice = createSlice({
             .addCase(fetchAllUsers.fulfilled, (state, action) => {
                 console.log('fetchAllUsers fulfilled:', action.payload);
                 state.isLoading = false;
-                state.users = action.payload.data.users.data  || [];
+                state.users = action.payload.data.users.data || [];
                 state.pagination = {
                     page: action.payload.pagination?.page || 1,
                     limit: action.payload.pagination?.limit || 10,

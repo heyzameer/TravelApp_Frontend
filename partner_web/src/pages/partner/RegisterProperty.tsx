@@ -1,231 +1,834 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { partnerAuthService } from "../../services/partnerAuth";
-import { Upload, X, FileText, Camera } from "lucide-react";
+import {
+    Upload, X, Camera, Loader2, MapPin, Building, AlertCircle
+} from "lucide-react";
 
-const RegisterProperty: React.FC = () => {
+interface FormErrors {
+    [key: string]: string;
+}
+
+interface RegisterPropertyProps {
+    propertyId?: string;
+    onCancel?: () => void;
+}
+
+const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCancel }) => {
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState<any>({
-        name: "",
-        email: "",
-        phone: "",
-        password: "",
+    const [initialFetchLoading, setInitialFetchLoading] = useState(false);
+    const [errors, setErrors] = useState<FormErrors>({});
+
+    // Form States
+    const [formData, setFormData] = useState({
         propertyName: "",
-        propertyAddress: "",
+        propertyType: "hotel",
         description: "",
+        pricePerNight: "",
+        maxGuests: "",
+        totalRooms: "",
+        availableRooms: "",
+        street: "",
         city: "",
         state: "",
-        postalCode: "",
-        additionalContact: "",
+        pincode: "",
+        country: "India",
+        gstNumber: "",
+        panNumber: "",
+        accountHolderName: "",
+        accountNumber: "",
+        ifscCode: "",
+        upiId: ""
     });
 
-    const [files, setFiles] = useState<{ [key: string]: File | File[] | null }>({
-        idDocument: null,
-        businessLicense: null,
-        propertyPhotos: [],
-        otherDocuments: [],
+    // File States
+    const [files, setFiles] = useState<any>({
+        ownershipProof: null,
+        ownerKYC: null,
+        gstCertificate: null,
+        panCard: null,
+        coverImage: null,
+        images: []
     });
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.id]: e.target.value });
+    // Previews
+    const [previews, setPreviews] = useState<any>({});
+
+    useEffect(() => {
+        if (propertyId) {
+            fetchPropertyForEdit();
+        }
+    }, [propertyId]);
+
+    if (initialFetchLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="animate-spin text-red-600" size={40} />
+            </div>
+        );
+    }
+
+    const fetchPropertyForEdit = async () => {
+        try {
+            setInitialFetchLoading(true);
+            const properties = await partnerAuthService.getPartnerProperties();
+            const property = properties.find((p: any) => p._id === propertyId);
+
+            if (property) {
+                setFormData({
+                    propertyName: property.propertyName || "",
+                    propertyType: property.propertyType || "hotel",
+                    description: property.description || "",
+                    pricePerNight: property.pricePerNight?.toString() || "",
+                    maxGuests: property.maxGuests?.toString() || "",
+                    totalRooms: property.totalRooms?.toString() || "",
+                    availableRooms: property.availableRooms?.toString() || property.totalRooms?.toString() || "",
+                    street: property.address?.street || "",
+                    city: property.address?.city || "",
+                    state: property.address?.state || "",
+                    pincode: property.address?.pincode || "",
+                    country: property.address?.country || "India",
+                    gstNumber: property.taxDocuments?.gstNumber || "",
+                    panNumber: property.taxDocuments?.panNumber || "",
+                    accountHolderName: property.bankingDetails?.accountHolderName || "",
+                    accountNumber: property.bankingDetails?.accountNumber || "",
+                    ifscCode: property.bankingDetails?.ifscCode || "",
+                    upiId: property.bankingDetails?.upiId || ""
+                });
+
+                setPreviews({
+                    ownershipProof: property.ownershipDocuments?.ownershipProof,
+                    ownerKYC: property.ownershipDocuments?.ownerKYC,
+                    gstCertificate: property.taxDocuments?.gstCertificate,
+                    panCard: property.taxDocuments?.panCard,
+                    coverImage: property.coverImage,
+                    images: property.images || []
+                });
+
+                // For existing images, we don't put them in the files state (which holds new Files to upload)
+            }
+        } catch (error) {
+            toast.error("Failed to load property for editing");
+            console.error(error);
+        } finally {
+            setInitialFetchLoading(false);
+        }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-        if (e.target.files) {
-            if (fieldName === "propertyPhotos" || fieldName === "otherDocuments") {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        // Clear error when user starts typing
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: "" }));
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+        if (e.target.files && e.target.files[0]) {
+            if (field === 'images') {
                 const newFiles = Array.from(e.target.files);
-                setFiles((prev) => ({
-                    ...prev,
-                    [fieldName]: [...(prev[fieldName] as File[]), ...newFiles],
-                }));
+                setFiles((prev: any) => ({ ...prev, images: [...prev.images, ...newFiles] }));
+                const newPreviews = newFiles.map(f => URL.createObjectURL(f));
+                setPreviews((prev: any) => ({ ...prev, images: [...(prev.images || []), ...newPreviews] }));
             } else {
-                setFiles((prev) => ({ ...prev, [fieldName]: e.target.files![0] }));
+                const file = e.target.files[0];
+                setFiles((prev: any) => ({ ...prev, [field]: file }));
+                setPreviews((prev: any) => ({ ...prev, [field]: URL.createObjectURL(file) }));
+            }
+            // Clear error when file is selected
+            if (errors[field]) {
+                setErrors(prev => ({ ...prev, [field]: "" }));
             }
         }
     };
 
-    const removeFile = (fieldName: string, index?: number) => {
-        if (index !== undefined) {
-            setFiles((prev) => {
-                const updatedFiles = [...(prev[fieldName] as File[])];
-                updatedFiles.splice(index, 1);
-                return { ...prev, [fieldName]: updatedFiles };
-            });
-        } else {
-            setFiles((prev) => ({ ...prev, [fieldName]: null }));
+    const removeImage = (idx: number) => {
+        setFiles((prev: any) => ({ ...prev, images: prev.images.filter((_: any, i: number) => i !== idx) }));
+        setPreviews((prev: any) => ({ ...prev, images: prev.images.filter((_: any, i: number) => i !== idx) }));
+    };
+
+    const validateForm = (): boolean => {
+        const newErrors: FormErrors = {};
+
+        // Basic Details Validation
+        if (!formData.propertyName.trim()) newErrors.propertyName = "Property name is required";
+        if (!formData.description.trim() || formData.description.length < 20) {
+            newErrors.description = "Description must be at least 20 characters";
         }
+        if (!formData.pricePerNight || Number(formData.pricePerNight) < 100) {
+            newErrors.pricePerNight = "Price must be at least ₹100";
+        }
+        if (!formData.maxGuests || Number(formData.maxGuests) < 1) {
+            newErrors.maxGuests = "At least 1 guest required";
+        }
+        if (!formData.totalRooms || Number(formData.totalRooms) < 1) {
+            newErrors.totalRooms = "At least 1 room required";
+        }
+
+        // Address Validation
+        if (!formData.street.trim()) newErrors.street = "Street address is required";
+        if (!formData.city.trim()) newErrors.city = "City is required";
+        if (!formData.state.trim()) newErrors.state = "State is required";
+        if (!formData.pincode.trim() || !/^\d{6}$/.test(formData.pincode)) {
+            newErrors.pincode = "Valid 6-digit pincode required";
+        }
+
+        // Document Validation - in edit mode, existing previews are enough
+        if (!files.ownershipProof && !previews.ownershipProof) newErrors.ownershipProof = "Ownership proof is required";
+        if (!files.ownerKYC && !previews.ownerKYC) newErrors.ownerKYC = "Owner KYC is required";
+
+        // Tax Validation
+        if (!formData.gstNumber.trim()) newErrors.gstNumber = "GST number is required";
+        if (!formData.panNumber.trim() || !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber.toUpperCase())) {
+            newErrors.panNumber = "Valid PAN number required (e.g., ABCDE1234F)";
+        }
+        if (!files.gstCertificate && !previews.gstCertificate) newErrors.gstCertificate = "GST certificate is required";
+        if (!files.panCard && !previews.panCard) newErrors.panCard = "PAN card is required";
+
+        // Banking Validation
+        if (!formData.accountHolderName.trim()) newErrors.accountHolderName = "Account holder name is required";
+        if (!formData.accountNumber.trim() || !/^\d{9,18}$/.test(formData.accountNumber)) {
+            newErrors.accountNumber = "Valid account number required (9-18 digits)";
+        }
+        if (!formData.ifscCode.trim() || !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode.toUpperCase())) {
+            newErrors.ifscCode = "Valid IFSC code required (e.g., SBIN0001234)";
+        }
+
+        // Images Validation
+        if (!files.coverImage && !previews.coverImage) newErrors.coverImage = "Cover image is required";
+        if (files.images.length === 0 && (!previews.images || previews.images.length === 0)) {
+            newErrors.images = "At least one property image is required";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!validateForm()) {
+            toast.error("Please fix all validation errors");
+            return;
+        }
+
         setLoading(true);
-
-        const data = new FormData();
-        Object.keys(formData).forEach((key) => {
-            data.append(key, formData[key]);
-        });
-
-        if (files.idDocument) data.append("idDocument", files.idDocument as File);
-        if (files.businessLicense) data.append("businessLicense", files.businessLicense as File);
-
-        (files.propertyPhotos as File[]).forEach((file) => {
-            data.append("propertyPhotos", file);
-        });
-
-        (files.otherDocuments as File[]).forEach((file) => {
-            data.append("otherDocuments", file);
-        });
-
         try {
-            await partnerAuthService.registerProperty(data);
-            toast.success("Property registered successfully!");
-            // Reset form or redirect
+            const propertyData = {
+                propertyName: formData.propertyName,
+                propertyType: formData.propertyType,
+                description: formData.description,
+                pricePerNight: Number(formData.pricePerNight),
+                maxGuests: Number(formData.maxGuests),
+                totalRooms: Number(formData.totalRooms),
+                availableRooms: propertyId ? Number(formData.availableRooms) : Number(formData.totalRooms),
+                address: {
+                    street: formData.street,
+                    city: formData.city,
+                    state: formData.state,
+                    pincode: formData.pincode,
+                    country: formData.country
+                },
+                location: {
+                    type: "Point",
+                    coordinates: [77.5946, 12.9716]
+                }
+            };
+
+            let currentPropertyId = propertyId;
+
+            if (propertyId) {
+                await partnerAuthService.updatePropertyDetails(propertyId, propertyData);
+            } else {
+                const res = await partnerAuthService.createProperty(propertyData);
+                currentPropertyId = res._id || res.id;
+            }
+
+            if (!currentPropertyId) throw new Error("Failed to get property ID");
+
+            // Step 2: Upload ownership documents (only if new files selected)
+            if (files.ownershipProof || files.ownerKYC) {
+                const ownershipFd = new FormData();
+                if (files.ownershipProof) ownershipFd.append('ownershipProof', files.ownershipProof);
+                if (files.ownerKYC) ownershipFd.append('ownerKYC', files.ownerKYC);
+                await partnerAuthService.uploadPropertyOwnership(currentPropertyId, ownershipFd);
+            }
+
+            // Step 3: Upload tax documents
+            const taxFd = new FormData();
+            taxFd.append('gstNumber', formData.gstNumber);
+            taxFd.append('panNumber', formData.panNumber.toUpperCase());
+            if (files.gstCertificate) taxFd.append('gstCertificate', files.gstCertificate);
+            if (files.panCard) taxFd.append('panCard', files.panCard);
+            await partnerAuthService.uploadPropertyTax(currentPropertyId, taxFd);
+
+            // Step 4: Update banking details
+            await partnerAuthService.updatePropertyBanking(currentPropertyId, {
+                accountHolderName: formData.accountHolderName,
+                accountNumber: formData.accountNumber,
+                ifscCode: formData.ifscCode.toUpperCase(),
+                upiId: formData.upiId
+            });
+
+            // Step 5: Upload images (if new ones selected)
+            if (files.coverImage || files.images.length > 0) {
+                const imagesFd = new FormData();
+                if (files.coverImage) imagesFd.append('coverImage', files.coverImage);
+                files.images.forEach((img: File) => imagesFd.append('images', img));
+                await partnerAuthService.uploadPropertyImages(currentPropertyId, imagesFd);
+            }
+
+            toast.success(propertyId ? "Property updated successfully!" : "Property registered successfully! Submitted for verification.");
+
+            if (onCancel) {
+                setTimeout(onCancel, 1500);
+            } else {
+                setTimeout(() => window.location.reload(), 1500);
+            }
         } catch (error: any) {
-            console.error("Property registration error:", error);
-            toast.error(error.response?.data?.message || "Failed to register property.");
+            toast.error(error.response?.data?.message || "Failed to save property");
+            console.error(error);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 max-w-4xl mx-auto">
-            <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-800">Register New Property</h2>
-                <p className="text-gray-500">Provide details about your property and upload necessary documents.</p>
+        <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-8 pb-20">
+            {/* Header */}
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+                        {propertyId ? 'EDIT PROPERTY' : 'REGISTER PROPERTY'}
+                    </h1>
+                    <p className="text-gray-500 font-medium mt-2">
+                        {propertyId ? 'Make changes to your property details' : 'Fill in all details to list your property on TravelHub'}
+                    </p>
+                </div>
+                {onCancel && (
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="flex items-center gap-2 text-gray-500 hover:text-red-600 font-bold transition-colors"
+                    >
+                        <X size={20} />
+                        CANCEL {propertyId ? 'EDIT' : ''}
+                    </button>
+                )}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Personal Details Section */}
-                <section>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-4 pb-2 border-b">Owner Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                            <input type="text" id="name" required value={formData.name} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="John Doe" />
-                        </div>
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                            <input type="email" id="email" required value={formData.email} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="john@example.com" />
-                        </div>
-                        <div>
-                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
-                            <input type="tel" id="phone" required value={formData.phone} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="1234567890" />
-                        </div>
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                            <input type="password" id="password" required value={formData.password} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="Min 8 characters" minLength={8} />
-                        </div>
-                    </div>
-                </section>
+            {/* Basic Details Section */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                <h2 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
+                    <Building className="text-red-600" size={24} />
+                    PROPERTY DETAILS
+                </h2>
 
-                {/* Property Details Section */}
-                <section>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-4 pb-2 border-b">Property Details</h3>
-                    <div className="grid grid-cols-1 gap-6">
-                        <div>
-                            <label htmlFor="propertyName" className="block text-sm font-medium text-gray-700 mb-1">Property Name *</label>
-                            <input type="text" id="propertyName" required value={formData.propertyName} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="Sunset Villa" />
-                        </div>
-                        <div>
-                            <label htmlFor="propertyAddress" className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-                            <input type="text" id="propertyAddress" required value={formData.propertyAddress} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="123 Street Name, City" />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                                <input type="text" id="city" value={formData.city} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="City" />
-                            </div>
-                            <div>
-                                <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                                <input type="text" id="state" value={formData.state} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="State" />
-                            </div>
-                            <div>
-                                <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
-                                <input type="text" id="postalCode" value={formData.postalCode} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="123456" />
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea id="description" rows={4} value={formData.description} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-red-500 outline-none" placeholder="Tell us about your property..."></textarea>
-                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="propertyName" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Property Name *
+                        </label>
+                        <input
+                            type="text"
+                            name="propertyName"
+                            value={formData.propertyName}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Grand Palace Hotel"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.propertyName ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.propertyName && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.propertyName}
+                            </p>
+                        )}
                     </div>
-                </section>
 
-                {/* Documents Section */}
-                <section>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-4 pb-2 border-b">Documents & Photos</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* ID Document */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">ID Document (Aadhar/PAN/Passport) *</label>
-                            <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-red-400 transition-colors">
-                                <input type="file" id="idDocument" required={!files.idDocument} onChange={(e) => handleFileChange(e, "idDocument")} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" />
-                                <div className="flex flex-col items-center">
-                                    {files.idDocument ? (
-                                        <div className="flex items-center space-x-2 text-green-600">
-                                            <FileText size={24} />
-                                            <span className="text-sm">{(files.idDocument as File).name}</span>
-                                            <button type="button" onClick={(e) => { e.stopPropagation(); removeFile("idDocument"); }} className="text-red-500 hover:text-red-700"><X size={16} /></button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <Upload className="text-gray-400 mb-2" size={32} />
-                                            <span className="text-sm text-gray-500">Click to upload ID Document</span>
-                                        </>
-                                    )}
+                    <div id="propertyType" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Property Type *
+                        </label>
+                        <select
+                            name="propertyType"
+                            value={formData.propertyType}
+                            onChange={handleInputChange}
+                            className="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold"
+                        >
+                            <option value="hotel">Hotel</option>
+                            <option value="resort">Resort</option>
+                            <option value="villa">Villa</option>
+                            <option value="apartment">Apartment</option>
+                            <option value="homestay">Homestay</option>
+                        </select>
+                    </div>
+
+                    <div id="description" className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Description * (min 20 characters)
+                        </label>
+                        <textarea
+                            name="description"
+                            value={formData.description}
+                            onChange={handleInputChange}
+                            rows={4}
+                            placeholder="Describe your property's best features..."
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.description ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.description && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.description}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="pricePerNight" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Price Per Night (₹) *
+                        </label>
+                        <input
+                            type="number"
+                            name="pricePerNight"
+                            value={formData.pricePerNight}
+                            onChange={handleInputChange}
+                            placeholder="1000"
+                            min="100"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.pricePerNight ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.pricePerNight && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.pricePerNight}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="maxGuests" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Max Guests *
+                        </label>
+                        <input
+                            type="number"
+                            name="maxGuests"
+                            value={formData.maxGuests}
+                            onChange={handleInputChange}
+                            placeholder="4"
+                            min="1"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.maxGuests ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.maxGuests && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.maxGuests}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="totalRooms" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Total Rooms *
+                        </label>
+                        <input
+                            type="number"
+                            name="totalRooms"
+                            value={formData.totalRooms}
+                            onChange={handleInputChange}
+                            placeholder="10"
+                            min="1"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.totalRooms ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.totalRooms && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.totalRooms}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Address Section */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                <h2 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
+                    <MapPin className="text-red-600" size={24} />
+                    LOCATION & ADDRESS
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="street" className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Street Address *
+                        </label>
+                        <input
+                            type="text"
+                            name="street"
+                            value={formData.street}
+                            onChange={handleInputChange}
+                            placeholder="123 Main Street"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.street ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.street && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.street}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="city" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            City *
+                        </label>
+                        <input
+                            type="text"
+                            name="city"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            placeholder="Bangalore"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.city ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.city && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.city}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="state" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            State *
+                        </label>
+                        <input
+                            type="text"
+                            name="state"
+                            value={formData.state}
+                            onChange={handleInputChange}
+                            placeholder="Karnataka"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.state ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.state && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.state}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="pincode" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Pincode *
+                        </label>
+                        <input
+                            type="text"
+                            name="pincode"
+                            value={formData.pincode}
+                            onChange={handleInputChange}
+                            placeholder="560001"
+                            maxLength={6}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.pincode ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.pincode && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.pincode}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Ownership Documents Section */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                <h2 className="text-xl font-black text-gray-900 mb-6">OWNERSHIP DOCUMENTS</h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="ownershipProof" className="space-y-4">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Ownership Proof (Sale Deed/Tax Receipt) *
+                        </label>
+                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors group ${errors.ownershipProof ? 'border-red-500' : 'border-gray-100'}`}>
+                            {previews.ownershipProof ? (
+                                <img src={previews.ownershipProof} className="w-full h-full object-cover" alt="Proof" />
+                            ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="p-4 bg-white rounded-2xl shadow-sm"><Upload className="text-gray-400" /></div>
+                                    <span className="text-xs font-black text-gray-400">UPLOAD DOCUMENT</span>
                                 </div>
-                            </div>
+                            )}
+                            <input type="file" accept="image/*,application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleFileChange(e, 'ownershipProof')} />
                         </div>
-
-                        {/* Business License */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Business License / Property Tax Receipt *</label>
-                            <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-red-400 transition-colors">
-                                <input type="file" id="businessLicense" required={!files.businessLicense} onChange={(e) => handleFileChange(e, "businessLicense")} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" />
-                                <div className="flex flex-col items-center">
-                                    {files.businessLicense ? (
-                                        <div className="flex items-center space-x-2 text-green-600">
-                                            <FileText size={24} />
-                                            <span className="text-sm">{(files.businessLicense as File).name}</span>
-                                            <button type="button" onClick={(e) => { e.stopPropagation(); removeFile("businessLicense"); }} className="text-red-500 hover:text-red-700"><X size={16} /></button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <Upload className="text-gray-400 mb-2" size={32} />
-                                            <span className="text-sm text-gray-500">Click to upload Business License</span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        {errors.ownershipProof && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.ownershipProof}
+                            </p>
+                        )}
                     </div>
 
-                    <div className="mt-8">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Property Photos (Up to 10 photos) *</label>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            {(files.propertyPhotos as File[]).map((file, idx) => (
-                                <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border">
-                                    <img src={URL.createObjectURL(file)} alt={`photo-${idx}`} className="w-full h-full object-cover" />
-                                    <button type="button" onClick={() => removeFile("propertyPhotos", idx)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md"><X size={12} /></button>
+                    <div id="ownerKYC" className="space-y-4">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Owner KYC (PAN/Aadhaar) *
+                        </label>
+                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors group ${errors.ownerKYC ? 'border-red-500' : 'border-gray-100'}`}>
+                            {previews.ownerKYC ? (
+                                <img src={previews.ownerKYC} className="w-full h-full object-cover" alt="KYC" />
+                            ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="p-4 bg-white rounded-2xl shadow-sm"><Upload className="text-gray-400" /></div>
+                                    <span className="text-xs font-black text-gray-400">UPLOAD DOCUMENT</span>
+                                </div>
+                            )}
+                            <input type="file" accept="image/*,application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleFileChange(e, 'ownerKYC')} />
+                        </div>
+                        {errors.ownerKYC && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.ownerKYC}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Tax Documents Section */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                <h2 className="text-xl font-black text-gray-900 mb-6">TAX INFORMATION</h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="gstNumber" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            GST Number *
+                        </label>
+                        <input
+                            type="text"
+                            name="gstNumber"
+                            value={formData.gstNumber}
+                            onChange={handleInputChange}
+                            placeholder="22AAAAA0000A1Z5"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.gstNumber ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.gstNumber && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.gstNumber}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="panNumber" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            PAN Number *
+                        </label>
+                        <input
+                            type="text"
+                            name="panNumber"
+                            value={formData.panNumber}
+                            onChange={handleInputChange}
+                            placeholder="ABCDE1234F"
+                            maxLength={10}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold uppercase ${errors.panNumber ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.panNumber && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.panNumber}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="gstCertificate" className="space-y-4">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            GST Certificate *
+                        </label>
+                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors ${errors.gstCertificate ? 'border-red-500' : 'border-gray-100'}`}>
+                            {previews.gstCertificate ? (
+                                <img src={previews.gstCertificate} className="w-full h-full object-cover" alt="GST" />
+                            ) : (
+                                <Upload className="text-gray-400" />
+                            )}
+                            <input type="file" accept="image/*,application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleFileChange(e, 'gstCertificate')} />
+                        </div>
+                        {errors.gstCertificate && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.gstCertificate}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="panCard" className="space-y-4">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            PAN Card *
+                        </label>
+                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors ${errors.panCard ? 'border-red-500' : 'border-gray-100'}`}>
+                            {previews.panCard ? (
+                                <img src={previews.panCard} className="w-full h-full object-cover" alt="PAN" />
+                            ) : (
+                                <Upload className="text-gray-400" />
+                            )}
+                            <input type="file" accept="image/*,application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleFileChange(e, 'panCard')} />
+                        </div>
+                        {errors.panCard && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.panCard}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Banking Details Section */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                <h2 className="text-xl font-black text-gray-900 mb-6">BANKING DETAILS</h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="accountHolderName" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Account Holder Name *
+                        </label>
+                        <input
+                            type="text"
+                            name="accountHolderName"
+                            value={formData.accountHolderName}
+                            onChange={handleInputChange}
+                            placeholder="John Doe"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.accountHolderName ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.accountHolderName && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.accountHolderName}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="accountNumber" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Account Number *
+                        </label>
+                        <input
+                            type="text"
+                            name="accountNumber"
+                            value={formData.accountNumber}
+                            onChange={handleInputChange}
+                            placeholder="123456789012"
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.accountNumber ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.accountNumber && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.accountNumber}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="ifscCode" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            IFSC Code *
+                        </label>
+                        <input
+                            type="text"
+                            name="ifscCode"
+                            value={formData.ifscCode}
+                            onChange={handleInputChange}
+                            placeholder="SBIN0001234"
+                            maxLength={11}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold uppercase ${errors.ifscCode ? 'border-red-500' : 'border-transparent'}`}
+                        />
+                        {errors.ifscCode && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.ifscCode}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="upiId" className="space-y-2">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            UPI ID (Optional)
+                        </label>
+                        <input
+                            type="text"
+                            name="upiId"
+                            value={formData.upiId}
+                            onChange={handleInputChange}
+                            placeholder="user@paytm"
+                            className="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Property Images Section */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                <h2 className="text-xl font-black text-gray-900 mb-6">PROPERTY GALLERY</h2>
+
+                <div className="space-y-6">
+                    <div id="coverImage" className="space-y-4">
+                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                            Cover Image (Main Photo) *
+                        </label>
+                        <div className={`relative aspect-[21/9] rounded-[40px] border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors ${errors.coverImage ? 'border-red-500' : 'border-gray-100'}`}>
+                            {previews.coverImage ? (
+                                <img src={previews.coverImage} className="w-full h-full object-cover" alt="Cover" />
+                            ) : (
+                                <div className="flex flex-col items-center gap-3">
+                                    <Camera className="text-gray-400" size={40} />
+                                    <span className="text-xs font-black text-gray-400">UPLOAD COVER PHOTO</span>
+                                </div>
+                            )}
+                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleFileChange(e, 'coverImage')} />
+                        </div>
+                        {errors.coverImage && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.coverImage}
+                            </p>
+                        )}
+                    </div>
+
+                    <div id="images" className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
+                                Property Gallery (Up to 10 photos) *
+                            </label>
+                            <span className="text-xs font-black text-red-600">{files.images.length}/10</span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                            {previews.images?.map((url: string, idx: number) => (
+                                <div key={idx} className="relative aspect-square rounded-3xl overflow-hidden border-2 border-gray-50 shadow-sm">
+                                    <img src={url} className="w-full h-full object-cover" alt="Gallery" />
+                                    <button
+                                        type="button"
+                                        className="absolute top-2 right-2 p-1 bg-white/80 backdrop-blur-md rounded-full text-red-600 shadow-lg hover:bg-red-600 hover:text-white transition-all"
+                                        onClick={() => removeImage(idx)}
+                                    >
+                                        <X size={14} />
+                                    </button>
                                 </div>
                             ))}
-                            <div className="relative aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-red-400 transition-colors cursor-pointer text-gray-400">
-                                <input type="file" multiple onChange={(e) => handleFileChange(e, "propertyPhotos")} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*" />
-                                <Camera size={24} />
-                                <span className="text-xs mt-1">Add Photo</span>
-                            </div>
+                            {files.images.length < 10 && (
+                                <label className={`relative aspect-square rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center cursor-pointer hover:border-red-200 transition-colors group ${errors.images ? 'border-red-500' : 'border-gray-100'}`}>
+                                    <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-100"><Upload className="text-gray-400 group-hover:text-red-500 transition-colors" /></div>
+                                    <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'images')} />
+                                </label>
+                            )}
                         </div>
+                        {errors.images && (
+                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                                <AlertCircle size={14} /> {errors.images}
+                            </p>
+                        )}
                     </div>
-                </section>
-
-                <div className="pt-6">
-                    <button type="submit" disabled={loading} className={`w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg transform transition active:scale-95 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}>
-                        {loading ? "Registering Property..." : "Register Property"}
-                    </button>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full px-12 py-5 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-lg shadow-xl shadow-red-100 hover:bg-red-700 hover:shadow-2xl hover:shadow-red-200 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                >
+                    {loading ? (
+                        <>
+                            <Loader2 className="animate-spin" size={24} />
+                            SUBMITTING PROPERTY...
+                        </>
+                    ) : (
+                        'SUBMIT PROPERTY FOR VERIFICATION'
+                    )}
+                </button>
+                <p className="text-center text-gray-500 text-sm mt-4 font-medium">
+                    Your property will be reviewed by our admin team before going live
+                </p>
+            </div>
+        </form>
     );
 };
 

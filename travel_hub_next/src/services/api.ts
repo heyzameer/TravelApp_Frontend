@@ -38,6 +38,13 @@ export const authService = {
     getProfile: async () => {
         return api.get<AuthResponse>('/auth/profile');
     },
+    updateProfile: async (data: FormData) => {
+        return api.put<AuthResponse>('/auth/profile', data, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
     resendUserOtp: async (data: { email: string; type: string }) => {
         return api.post<AuthResponse>('/auth/resend-otp', data);
     },

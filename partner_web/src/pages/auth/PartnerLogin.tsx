@@ -30,7 +30,7 @@ const PartnerLogin: React.FC = () => {
             <div className="hidden lg:flex lg:w-1/2 bg-white p-8 items-center justify-center">
                 <div className="relative w-full h-full flex items-center justify-center">
                     <img
-                        src="/homestay-vector.avif"
+                        src="https://static.vecteezy.com/system/resources/previews/021/645/952/non_2x/homestay-icon-style-vector.jpg"
                         alt="homestay-login"
                         className="w-4/5 max-h-[80%] object-cover rounded-xl "
                     />

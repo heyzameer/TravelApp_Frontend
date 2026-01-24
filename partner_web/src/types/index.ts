@@ -26,6 +26,7 @@ export interface User {
   permissions: string[];
   isEmailVerified: boolean;
   profilePicture?: string;
+  dateOfBirth?: string;
   isActive: boolean;
   createdAt: Date;
   lastLogin?: Date;
@@ -34,6 +35,48 @@ export interface User {
   bookings?: Booking[]; // Changed from order to bookings
   totalBookings?: number; // For admin display
   totalAmount?: number; // For admin display
+
+  // Partner specific fields
+  isVerified?: boolean;
+  aadhaarVerified?: boolean;
+  aadharStatus?: 'not_submitted' | 'pending' | 'manual_review' | 'verified' | 'rejected' | 'approved';
+  aadharRejectionReason?: string;
+  personalDocuments?: {
+    aadharFront?: string;
+    aadharBack?: string;
+    profilePicture?: string;
+    aadharStatus?: string;
+    aadharRejectionReason?: string;
+    [key: string]: any;
+  };
+}
+
+export interface VerificationStatusResponse {
+  aadharStatus: 'not_submitted' | 'manual_review' | 'approved' | 'rejected';
+  isVerified: boolean;
+  canAddProperty: boolean;
+  documents: {
+    aadharFront: boolean;
+    aadharBack: boolean;
+    profilePicture: boolean;
+  };
+}
+
+export interface DocumentUrls {
+  aadharFront?: string;
+  aadharBack?: string;
+  profilePicture?: string;
+}
+
+export interface SocketVerificationApprovedEvent {
+  partnerId: string;
+  email: string;
+}
+
+export interface SocketVerificationRejectedEvent {
+  partnerId: string;
+  email: string;
+  reason: string;
 }
 export interface AuthState {
   user: User | null;
@@ -336,29 +379,78 @@ export interface AddressResponse {
 
 export interface Property {
   _id: string;
-  id?: string;
-  name: string;
+  propertyName: string;
+  propertyType: string;
   description?: string;
-  address?: string;
-  location?: {
-    coordinates: number[];
-    address?: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
   };
-  pricePerNight?: number;
-  price?: number;
-  images?: string[];
+  location: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  pricePerNight: number;
+  totalRooms: number;
+  availableRooms: number;
+  maxGuests: number;
+  images: string[];
+  coverImage?: string;
   ownerId: string;
-  ownerName?: string;
-  owner?: {
-    fullName: string;
-    profilePicture?: string;
+
+  // Onboarding Flags
+  propertyDetailsCompleted: boolean;
+  ownershipDocumentsCompleted: boolean;
+  taxDocumentsCompleted: boolean;
+  bankingDetailsCompleted: boolean;
+  imagesUploaded: boolean;
+  onboardingCompleted: boolean;
+
+  // Verification
+  isVerified: boolean;
+  isActive: boolean;
+  verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
+
+  ownershipDocuments?: {
+    ownershipProof?: string;
+    ownerKYC?: string;
+    ownershipProofStatus: string;
+    ownerKYCStatus: string;
+    rejectionReason?: string;
   };
-  isActive?: boolean;
-  isAvailable?: boolean;
-  status: string;
-  rating?: number;
-  reviewsCount?: number;
-  amenities?: string[];
+  taxDocuments?: {
+    gstNumber?: string;
+    panNumber?: string;
+    gstCertificate?: string;
+    panCard?: string;
+    taxStatus: string;
+    rejectionReason?: string;
+  };
+  bankingDetails?: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    upiId?: string;
+    bankingStatus: string;
+    rejectionReason?: string;
+  };
+}
+
+export interface PropertyOnboardingStatus {
+  step: number;
+  isComplete: boolean;
+  progress: number;
+  nextStep: string;
+  completedSteps: {
+    details: boolean;
+    ownership: boolean;
+    tax: boolean;
+    banking: boolean;
+    images: boolean;
+  };
 }
 
 export interface Booking {

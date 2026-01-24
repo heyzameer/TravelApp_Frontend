@@ -3,6 +3,7 @@ export interface User {
     fullName: string;
     email: string;
     phone?: string;
+    profilePicture?: string;
     role: 'customer' | 'partner' | 'admin';
     isActive: boolean;
     isVerified: boolean;

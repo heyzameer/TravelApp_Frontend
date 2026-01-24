@@ -23,7 +23,8 @@ export const fetchAllProperties = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const response = await adminService.getAllProperties();
-            return response.properties || [];
+            // response is { success: true, data: { properties: [] } }
+            return response.data?.properties || response.properties || [];
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch properties');
         }
@@ -35,7 +36,9 @@ export const fetchPropertyById = createAsyncThunk(
     async (propertyId: string, { rejectWithValue }) => {
         try {
             const response = await adminService.getPropertyById(propertyId);
-            return response.property;
+            // response matches ApiResponse<T> from backend: { success: true, data: { property: ... } }
+            // adminService returns response.data (the body)
+            return response.data?.property || response.property;
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch property');
         }
@@ -47,7 +50,7 @@ export const addProperty = createAsyncThunk(
     async (propertyData: any, { rejectWithValue }) => {
         try {
             const response = await adminService.createProperty(propertyData);
-            return response.property;
+            return response.data?.property || response.property;
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || 'Failed to add property');
         }
@@ -62,7 +65,7 @@ export const updateProperty = createAsyncThunk(
     ) => {
         try {
             const response = await adminService.updateProperty(propertyId, propertyData);
-            return response.property;
+            return response.data?.property || response.property;
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || 'Failed to update property');
         }
@@ -88,10 +91,40 @@ export const togglePropertyStatus = createAsyncThunk(
         { rejectWithValue }
     ) => {
         try {
-            const response = await adminService.updateProperty(propertyId, { isAvailable: isActive });
-            return response.property;
+            const response = await adminService.updateProperty(propertyId, { isActive });
+            return response.data?.property || response.property;
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || 'Failed to toggle property status');
+        }
+    }
+);
+
+export const updatePropertyDocumentStatus = createAsyncThunk(
+    'properties/updateDocumentStatus',
+    async (
+        { propertyId, section, status, rejectionReason }: { propertyId: string; section: string; status: 'approved' | 'rejected'; rejectionReason?: string },
+        { rejectWithValue }
+    ) => {
+        try {
+            const response = await adminService.updatePropertyDocumentStatus(propertyId, section, status, rejectionReason);
+            return response.data?.property || response.property;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to update document status');
+        }
+    }
+);
+
+export const verifyProperty = createAsyncThunk(
+    'properties/verify',
+    async (
+        { propertyId, status, rejectionReason }: { propertyId: string; status: 'verified' | 'rejected' | 'suspended'; rejectionReason?: string },
+        { rejectWithValue }
+    ) => {
+        try {
+            const response = await adminService.verifyProperty(propertyId, status, rejectionReason);
+            return response.data?.property || response.property;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to verify property');
         }
     }
 );
@@ -209,6 +242,48 @@ const propertiesSlice = createSlice({
                 }
             })
             .addCase(togglePropertyStatus.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            });
+
+        // Update document status
+        builder
+            .addCase(updatePropertyDocumentStatus.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(updatePropertyDocumentStatus.fulfilled, (state, action) => {
+                state.isLoading = false;
+                const index = state.properties.findIndex((p) => p._id === action.payload._id);
+                if (index !== -1) {
+                    state.properties[index] = action.payload;
+                }
+                if (state.selectedProperty?._id === action.payload._id) {
+                    state.selectedProperty = action.payload;
+                }
+            })
+            .addCase(updatePropertyDocumentStatus.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            });
+
+        // Verify property
+        builder
+            .addCase(verifyProperty.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(verifyProperty.fulfilled, (state, action) => {
+                state.isLoading = false;
+                const index = state.properties.findIndex((p) => p._id === action.payload._id);
+                if (index !== -1) {
+                    state.properties[index] = action.payload;
+                }
+                if (state.selectedProperty?._id === action.payload._id) {
+                    state.selectedProperty = action.payload;
+                }
+            })
+            .addCase(verifyProperty.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload as string;
             });
