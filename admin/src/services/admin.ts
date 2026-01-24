@@ -32,8 +32,8 @@ class AdminService {
         return response.data;
     }
 
-    async getAllPartners(): Promise<any> {
-        const response = await api.get('/admin/partners');
+    async getAllPartners(filter?: { aadharStatus?: string; search?: string; page?: number; limit?: number }): Promise<any> {
+        const response = await api.get('/admin/partners', { params: filter });
         return response.data;
     }
 
@@ -54,6 +54,20 @@ class AdminService {
 
     async deletePartner(partnerId: string): Promise<any> {
         const response = await api.delete(`/admin/partners/${partnerId}`);
+        return response.data;
+    }
+
+    async getPartnerVerificationDetails(partnerId: string): Promise<any> {
+        const response = await api.get(`/admin/partners/${partnerId}/verification-details`);
+        return response.data;
+    }
+
+    async verifyPartnerAadhaar(partnerId: string, action: 'approve' | 'reject', reason?: string): Promise<any> {
+        const response = await api.patch(`/admin/partners/${partnerId}/verify`, {
+            documentType: 'aadhar',
+            status: action === 'approve' ? 'approved' : 'rejected',
+            rejectionReason: reason
+        });
         return response.data;
     }
 
@@ -82,6 +96,15 @@ class AdminService {
         return response.data;
     }
 
+    async getAllPropertyApplications(pagination?: { page: number; limit: number }): Promise<any> {
+        const params = {
+            page: pagination?.page || 1,
+            limit: pagination?.limit || 10
+        };
+        const response = await api.get('/admin/properties/applications', { params });
+        return response.data;
+    }
+
     async getPropertyById(propertyId: string): Promise<any> {
         const response = await api.get(`/admin/properties/${propertyId}`);
         return response.data;
@@ -94,6 +117,23 @@ class AdminService {
 
     async deleteProperty(propertyId: string): Promise<any> {
         const response = await api.delete(`/admin/properties/${propertyId}`);
+        return response.data;
+    }
+
+    async updatePropertyDocumentStatus(propertyId: string, section: string, status: 'approved' | 'rejected', rejectionReason?: string): Promise<any> {
+        const response = await api.patch(`/admin/properties/${propertyId}/document-status`, {
+            section,
+            status,
+            rejectionReason
+        });
+        return response.data;
+    }
+
+    async verifyProperty(propertyId: string, status: 'verified' | 'rejected' | 'suspended', rejectionReason?: string): Promise<any> {
+        const response = await api.patch(`/admin/properties/${propertyId}/verify`, {
+            status,
+            rejectionReason
+        });
         return response.data;
     }
     async createProperty(propertyData: any): Promise<any> {

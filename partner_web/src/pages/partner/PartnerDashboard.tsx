@@ -14,12 +14,20 @@ import {
     User,
     House,
     PlusCircle,
+    ShieldCheck, // Added Icon
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { partnerAuthService } from "../../services/partnerAuth";
+import { useAppSelector, useAppDispatch } from "../../store/hooks"; // Added dispatch
+import { updateUser } from "../../store/slices/authSlice"; // Added action
 import RegisterProperty from "./RegisterProperty";
 import BookingManagement from "./BookingManagement";
 import PartnerProfilePage from "./PartnerProfile";
+import AadharVerification from "./AadharVerification"; // Added import
+import AllProperties from "./AllProperties"; // Added import
+import { socketService } from "../../services/socketService"; // Added import
+import type { VerificationStatusResponse } from "../../types"; // Added import
+import { toast } from "react-hot-toast"; // Added import
 
 interface SidebarItemProps {
     icon: React.ReactNode;
@@ -84,6 +92,20 @@ const PartnerDashboard: React.FC = () => {
     const [activeItem, setActiveItem] = useState("Dashboard");
     const [isMobile, setIsMobile] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+    const { user } = useAppSelector((state) => state.auth); // Get user from Redux
+    const dispatch = useAppDispatch(); // Added dispatch
+    const [verificationStatus, setVerificationStatus] = useState<VerificationStatusResponse | null>(null);
+    const [editId, setEditId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (location.state?.editPropertyId) {
+            setEditId(location.state.editPropertyId);
+            setActiveItem("Register Property");
+            // Clear state after reading to avoid re-triggering
+            window.history.replaceState({}, document.title);
+        }
+    }, [location]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -94,8 +116,82 @@ const PartnerDashboard: React.FC = () => {
         };
         handleResize();
         window.addEventListener("resize", handleResize);
+
+        // Check for adhar status on load
+        if (user) {
+            const aadharStatus = user.aadharStatus || user.personalDocuments?.aadharStatus;
+            const isVerified = user.isVerified || user.aadhaarVerified || aadharStatus === 'verified' || aadharStatus === 'approved';
+
+            if (!isVerified) {
+                // Optionally redirect or set active item to verification if critical
+                // For now, we just ensure they can access the page.
+                // If the user navigates here specifically, they might see Dashboard first.
+                // We could force it:
+                // setActiveItem("Identity Verification");
+            }
+        }
+
         return () => window.removeEventListener("resize", handleResize);
-    }, []);
+    }, [user, dispatch]);
+
+    // Unified initial data fetch
+    useEffect(() => {
+        const initializeDashboard = async () => {
+            try {
+                // 1. Fetch profile and update status
+                const profile = await partnerAuthService.getPartnerProfile();
+                let pDocs = profile.personalDocuments || {};
+
+                // Only fetch extra docs if needed (status is pending or review)
+                if (pDocs.aadharStatus && pDocs.aadharStatus !== 'not_submitted' && pDocs.aadharStatus !== 'approved' && pDocs.aadharStatus !== 'verified') {
+                    try {
+                        const docs = await partnerAuthService.getAadhaarDocuments();
+                        if (docs) {
+                            pDocs = { ...pDocs, ...docs };
+                        }
+                    } catch (docError) {
+                        console.warn("Could not fetch separate aadhaar documents", docError);
+                    }
+                }
+
+                dispatch(updateUser({
+                    ...user,
+                    ...profile,
+                    isVerified: profile.status === 'verified' || profile.status === 'active',
+                    aadhaarVerified: pDocs.aadharStatus === 'approved' || pDocs.aadharStatus === 'verified',
+                    aadharStatus: pDocs.aadharStatus as any,
+                    personalDocuments: pDocs
+                }));
+
+                // 2. Fetch verification status summary
+                const status = await partnerAuthService.getVerificationStatus();
+                setVerificationStatus(status);
+
+                // 3. Setup Socket
+                const token = partnerAuthService.getAccessToken();
+                if (token) {
+                    socketService.connect(token);
+                    socketService.onVerificationApproved(() => {
+                        partnerAuthService.getVerificationStatus().then(setVerificationStatus);
+                    });
+                    socketService.onVerificationRejected(() => {
+                        partnerAuthService.getVerificationStatus().then(setVerificationStatus);
+                    });
+                }
+            } catch (error) {
+                console.error("Dashboard initialization failed", error);
+            }
+        };
+
+        if (user) {
+            initializeDashboard();
+        }
+
+        return () => {
+            socketService.off('PARTNER_VERIFICATION_APPROVED');
+            socketService.off('PARTNER_VERIFICATION_REJECTED');
+        };
+    }, [dispatch]); // Removed user from dependency to prevent re-runs on state update
 
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -126,17 +222,53 @@ const PartnerDashboard: React.FC = () => {
         },
     ];
 
+    const handleRegisterPropertyClick = () => {
+        // 1. Check if account is active
+        if (user?.isActive === false) {
+            toast.error("Your account is deactivated. You cannot register properties.");
+            return;
+        }
+
+        // 2. Check verification status
+        const canAdd = verificationStatus?.canAddProperty;
+
+        if (!canAdd) {
+            setActiveItem("Identity Verification");
+            toast.error("Please complete identity verification to register properties.");
+            return;
+        }
+        setActiveItem("Register Property");
+    };
+
     const renderMainContent = () => {
         switch (activeItem) {
             case "Register Property":
-                return <RegisterProperty />;
+                return <RegisterProperty propertyId={editId || undefined} onCancel={() => {
+                    setEditId(null);
+                    setActiveItem("Dashboard");
+                }} />;
+            case "All Properties":
+                return <AllProperties />;
             case "Bookings":
                 return <BookingManagement />;
             case "Profile":
                 return <PartnerProfilePage />;
+            case "Identity Verification": // Added case
+                return <AadharVerification />;
             default:
                 return (
                     <>
+                        {user?.isActive === false && (
+                            <div className="mb-6 bg-red-600 p-6 rounded-2xl shadow-xl border-4 border-white animate-pulse">
+                                <div className="flex items-center gap-4 text-white">
+                                    <ShieldCheck className="shrink-0" size={40} />
+                                    <div>
+                                        <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">Account Deactivated</h2>
+                                        <p className="font-bold opacity-90 mt-1">Please contact support. You cannot register properties or manage bookings while deactivated.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="mb-6">
                             <h2 className="text-lg font-semibold text-gray-700 mb-2">
                                 Welcome back, Partner!
@@ -197,11 +329,23 @@ const PartnerDashboard: React.FC = () => {
 
     return (
         <div className="flex h-screen bg-gray-50">
+            {/* Mobile Backdrop */}
+            {isMobile && sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
+            {/* Sidebar */}
             <div
-                className={`${isMobile ? "fixed" : "relative"
-                    } z-20 h-full transform transition-all duration-300 ease-in-out 
-        ${sidebarOpen ? "w-64 translate-x-0" : "w-16 translate-x-0 ml-0"} 
-        bg-white shadow-lg flex flex-col`}
+                className={`z-50 h-full bg-white shadow-lg flex flex-col transition-all duration-300 ease-in-out
+                ${isMobile ? 'fixed inset-y-0 left-0 w-64' : 'relative'}
+                ${isMobile
+                        ? (sidebarOpen ? 'translate-x-0' : '-translate-x-full')
+                        : (sidebarOpen ? 'w-64 translate-x-0' : 'w-16 translate-x-0')
+                    }
+                `}
             >
                 <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                     <div className="flex items-center">
@@ -215,7 +359,7 @@ const PartnerDashboard: React.FC = () => {
                                 Travel<span className="text-red-500 font-bold">Hub</span>
                             </h1>
                         )}
-                        {!sidebarOpen && (
+                        {!sidebarOpen && !isMobile && (
                             <div className="flex justify-center w-full">
                                 <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-1 rounded-lg shadow-sm">
                                     <House size={18} />
@@ -233,11 +377,29 @@ const PartnerDashboard: React.FC = () => {
                         onClick={() => setActiveItem("Dashboard")}
                         sidebarOpen={sidebarOpen}
                     />
+
+                    {/* Identity Verification Item */}
+                    <SidebarItem
+                        icon={<ShieldCheck size={18} />}
+                        title="Identity Verification"
+                        isActive={activeItem === "Identity Verification"}
+                        onClick={() => setActiveItem("Identity Verification")}
+                        sidebarOpen={sidebarOpen}
+                        badge={verificationStatus && !verificationStatus.canAddProperty ? 1 : undefined} // Show badge if pending
+                    />
+
                     <SidebarItem
                         icon={<PlusCircle size={18} />}
                         title="Register Property"
                         isActive={activeItem === "Register Property"}
-                        onClick={() => setActiveItem("Register Property")}
+                        onClick={handleRegisterPropertyClick} // Use protected handler
+                        sidebarOpen={sidebarOpen}
+                    />
+                    <SidebarItem
+                        icon={<House size={18} />}
+                        title="All Properties"
+                        isActive={activeItem === "All Properties"}
+                        onClick={() => setActiveItem("All Properties")}
                         sidebarOpen={sidebarOpen}
                     />
                     <SidebarItem
@@ -293,8 +455,12 @@ const PartnerDashboard: React.FC = () => {
                             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">2</span>
                         </div>
                         <div className="flex items-center border-l pl-4">
-                            <div className="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center mr-2">P</div>
-                            <span className="text-gray-700 font-medium hidden md:inline">Partner</span>
+                            <div className="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center mr-2">
+                                {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'P'}
+                            </div>
+                            <span className="text-gray-700 font-medium hidden md:inline">
+                                {user?.fullName || 'Partner'}
+                            </span>
                         </div>
                     </div>
                 </header>

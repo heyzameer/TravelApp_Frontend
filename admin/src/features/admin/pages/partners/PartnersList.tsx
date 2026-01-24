@@ -1,25 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Edit2, Eye, Trash2, UserCheck, TrendingUp, DollarSign, AlertCircle } from 'lucide-react';
+import { Search, Edit2, Eye, Trash2, UserCheck, TrendingUp, DollarSign, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchAllPartners, updatePartner, deletePartner, sendPartnerEmail } from '../../../../store/slices/partnersSlice';
+import { fetchAllPartners, updatePartner, deletePartner, sendPartnerEmail, setAadharStatusFilter } from '../../../../store/slices/partnersSlice';
 import EmailNotificationModal from '../../components/EmailNotificationModal';
+import VerificationStatusBadge from '../../components/VerificationStatusBadge';
 import ReusableTable from '../../../../components/shared/ReusableTable';
 import type { ColumnConfig } from '../../../../components/shared/ReusableTable';
+import useDebounce from '../../../../hooks/useDebounce';
 
 const PartnersList: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
-    const { partners, isLoading, error } = useAppSelector((state) => state.partners);
+    const { partners, isLoading, error, aadharStatusFilter, totalPartners, currentPage, totalPages } = useAppSelector((state) => state.partners);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 500);
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
     const [selectedPartnerForStatus, setSelectedPartnerForStatus] = useState<{ id: string; email: string; currentStatus: boolean } | null>(null);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     useEffect(() => {
-        dispatch(fetchAllPartners());
-    }, [dispatch]);
+        dispatch(fetchAllPartners({
+            page: 1,
+            limit: 10,
+            search: debouncedSearch,
+            aadharStatus: aadharStatusFilter
+        }));
+    }, [dispatch, aadharStatusFilter, debouncedSearch]);
+
+    const handlePageChange = (newPage: number) => {
+        dispatch(fetchAllPartners({
+            page: newPage,
+            limit: 10,
+            search: debouncedSearch,
+            aadharStatus: aadharStatusFilter
+        }));
+    };
 
     const handleStatusToggle = (id: string, currentStatus: boolean, email: string) => {
         setSelectedPartnerForStatus({ id, email, currentStatus });
@@ -71,20 +88,14 @@ const PartnersList: React.FC = () => {
     };
 
     const handleViewPartner = (id: string) => {
-        navigate(`/admin/partners/${id}`);
+        navigate(`/admin/partners/${id}/verify`);
     };
 
-    const filteredPartners = partners.filter(partner =>
-        partner.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        partner.phone?.includes(searchTerm) ||
-        partner.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    console.log('Partners:', partners);
 
-    console.log('Filtered Partners:', filteredPartners);
-    console.log('Partner:', partners);
 
     const totalRevenue = partners.reduce((sum, partner) => sum + (partner.totalAmount || 0), 0);
-    const activePartners = partners.filter(p => p.isActive).length;
+
 
     // Column configuration for ReusableTable
     const columns: ColumnConfig<typeof partners[0]>[] = [
@@ -139,6 +150,13 @@ const PartnersList: React.FC = () => {
             key: 'revenue',
             render: (partner) => (
                 <span className="text-emerald-600 font-bold">₹{partner.totalAmount?.toFixed(2) || 0}</span>
+            )
+        },
+        {
+            header: 'Verification',
+            key: 'verification',
+            render: (partner) => (
+                <VerificationStatusBadge status={partner.personalDocuments?.aadharStatus || 'not_submitted'} />
             )
         },
         {
@@ -294,8 +312,8 @@ const PartnersList: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 text-sm font-medium mb-1">Total Owners</p>
-                            <p className="text-3xl font-bold text-gray-800">{partners.length}</p>
-                            <p className="text-green-600 text-sm mt-1 font-semibold">{activePartners} Active</p>
+                            <p className="text-3xl font-bold text-gray-800">{totalPartners}</p>
+                            <p className="text-green-600 text-sm mt-1 font-semibold">{partners.filter(p => p.isActive).length} on this page</p>
                         </div>
                         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4">
                             <UserCheck className="text-white" size={28} />
@@ -340,19 +358,34 @@ const PartnersList: React.FC = () => {
                         <div>
                             <h2 className="text-2xl font-bold text-gray-800">Partner Directory</h2>
                             <p className="text-gray-600 text-sm mt-1">
-                                {filteredPartners.length} {filteredPartners.length === 1 ? 'partner' : 'partners'} found
+                                {totalPartners} {totalPartners === 1 ? 'partner' : 'partners'} total
                             </p>
                         </div>
 
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Search partners..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="py-3 pl-12 pr-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 w-full md:w-80 transition-all"
-                            />
-                            <Search size={20} className="absolute top-3.5 left-4 text-gray-400" />
+                        <div className="flex flex-col sm:flex-row gap-4 items-center">
+                            {/* Status Filter */}
+                            <select
+                                value={aadharStatusFilter}
+                                onChange={(e) => dispatch(setAadharStatusFilter(e.target.value as any))}
+                                className="px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-medium cursor-pointer hover:border-blue-400 transition-colors"
+                            >
+                                <option value="all">All Verification Status</option>
+                                <option value="manual_review">Pending Review</option>
+                                <option value="approved">Verified</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="not_submitted">Not Submitted</option>
+                            </select>
+
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search partners..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="py-3 pl-12 pr-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 w-full md:w-80 transition-all"
+                                />
+                                <Search size={20} className="absolute top-3.5 left-4 text-gray-400" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -360,7 +393,7 @@ const PartnersList: React.FC = () => {
                 {/* Table */}
                 <ReusableTable
                     columns={columns}
-                    data={filteredPartners}
+                    data={partners}
                     isLoading={false}
                     onRowClick={(partner) => {
                         const partnerId = partner._id || partner.id || partner.partnerId;
@@ -369,6 +402,31 @@ const PartnersList: React.FC = () => {
                     keyExtractor={(partner) => partner._id || partner.id || partner.partnerId}
                     emptyMessage="No partners found"
                 />
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                            Showing page <span className="font-semibold text-gray-800">{currentPage}</span> of <span className="font-semibold text-gray-800">{totalPages}</span>
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft size={20} />
+                            </button>
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight size={20} />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
             <EmailNotificationModal
                 isOpen={isEmailModalOpen}

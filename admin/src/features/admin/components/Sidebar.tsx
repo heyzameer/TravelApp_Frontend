@@ -231,9 +231,18 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                     <SidebarItem
                         icon={<Building2 size={18} />}
                         title="Properties"
-                        to="/admin/properties"
+                        hasDropdown={true}
+                        isExpanded={isDropdownExpanded('Properties')}
+                        onClick={() => toggleDropdown('Properties')}
                         sidebarOpen={sidebarOpen}
                     />
+
+                    {isDropdownExpanded('Properties') && sidebarOpen && (
+                        <div className="my-1 transition-all duration-300 ease-in-out">
+                            <DropdownItem title="All Properties" to="/admin/properties" />
+                            <DropdownItem title="Applications" to="/admin/properties/applications" />
+                        </div>
+                    )}
 
                     {/* Bookings section */}
                     <SidebarItem

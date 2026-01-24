@@ -46,7 +46,7 @@ const PartnerRegister: React.FC = () => {
             <div className="hidden lg:flex lg:w-1/2 bg-white p-8 items-center justify-center">
                 <div className="relative w-full h-full flex items-center justify-center">
                     <img
-                        src="/homestay-vector.avif"
+                        src="/homestay.png"
                         alt="homestay-register"
                         className="w-4/5 max-h-[80%] object-cover rounded-xl "
                     />
