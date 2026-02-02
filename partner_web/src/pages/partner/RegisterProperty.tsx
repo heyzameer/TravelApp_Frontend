@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { partnerAuthService } from "../../services/partnerAuth";
+import { locationService } from "../../services/locationService";
+import type { Destination, Property } from "../../types";
 import {
     Upload, X, Camera, Loader2, MapPin, Building, AlertCircle
 } from "lucide-react";
+import { CategorizedImageUpload } from "../../components/property/CategorizedImageUpload";
 
 interface FormErrors {
     [key: string]: string;
@@ -13,6 +16,24 @@ interface RegisterPropertyProps {
     propertyId?: string;
     onCancel?: () => void;
 }
+
+interface FileState {
+    ownershipProof: File | null;
+    ownerKYC: File | null;
+    gstCertificate: File | null;
+    panCard: File | null;
+    coverImage: File | null;
+}
+
+interface CategorizedImage {
+    file: File | null;
+    preview: string;
+    category: string;
+    label: string;
+}
+
+// Map CategorizedImage to what CategorizedImageUpload expects if necessary
+// Assuming component expects File | null or just File for its internal state.
 
 const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCancel }) => {
     const [loading, setLoading] = useState(false);
@@ -24,10 +45,6 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
         propertyName: "",
         propertyType: "hotel",
         description: "",
-        pricePerNight: "",
-        maxGuests: "",
-        totalRooms: "",
-        availableRooms: "",
         street: "",
         city: "",
         state: "",
@@ -38,27 +55,44 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
         accountHolderName: "",
         accountNumber: "",
         ifscCode: "",
-        upiId: ""
+        upiId: "",
+        destinationId: ""
     });
 
     // File States
-    const [files, setFiles] = useState<any>({
+    const [files, setFiles] = useState<FileState>({
         ownershipProof: null,
         ownerKYC: null,
         gstCertificate: null,
         panCard: null,
-        coverImage: null,
-        images: []
+        coverImage: null
     });
 
+    // Categorized Images State
+    const [categorizedImages, setCategorizedImages] = useState<CategorizedImage[]>([]);
+
     // Previews
-    const [previews, setPreviews] = useState<any>({});
+    const [previews, setPreviews] = useState<Record<string, string | undefined>>({});
+
+    // Destinations State
+    const [destinations, setDestinations] = useState<Destination[]>([]);
 
     useEffect(() => {
         if (propertyId) {
             fetchPropertyForEdit();
         }
+        fetchDestinations();
     }, [propertyId]);
+
+    const fetchDestinations = async () => {
+        try {
+            const data = await locationService.getAllDestinations();
+            setDestinations(data);
+        } catch (error) {
+            console.error("Failed to fetch destinations", error);
+            toast.error("Failed to load destinations");
+        }
+    };
 
     if (initialFetchLoading) {
         return (
@@ -72,17 +106,13 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
         try {
             setInitialFetchLoading(true);
             const properties = await partnerAuthService.getPartnerProperties();
-            const property = properties.find((p: any) => p._id === propertyId);
+            const property = properties.find((p: Property) => p._id === propertyId);
 
             if (property) {
                 setFormData({
                     propertyName: property.propertyName || "",
                     propertyType: property.propertyType || "hotel",
                     description: property.description || "",
-                    pricePerNight: property.pricePerNight?.toString() || "",
-                    maxGuests: property.maxGuests?.toString() || "",
-                    totalRooms: property.totalRooms?.toString() || "",
-                    availableRooms: property.availableRooms?.toString() || property.totalRooms?.toString() || "",
                     street: property.address?.street || "",
                     city: property.address?.city || "",
                     state: property.address?.state || "",
@@ -93,7 +123,8 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                     accountHolderName: property.bankingDetails?.accountHolderName || "",
                     accountNumber: property.bankingDetails?.accountNumber || "",
                     ifscCode: property.bankingDetails?.ifscCode || "",
-                    upiId: property.bankingDetails?.upiId || ""
+                    upiId: property.bankingDetails?.upiId || "",
+                    destinationId: property.destinationId || ""
                 });
 
                 setPreviews({
@@ -101,11 +132,21 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                     ownerKYC: property.ownershipDocuments?.ownerKYC,
                     gstCertificate: property.taxDocuments?.gstCertificate,
                     panCard: property.taxDocuments?.panCard,
-                    coverImage: property.coverImage,
-                    images: property.images || []
+                    coverImage: property.coverImage
                 });
 
-                // For existing images, we don't put them in the files state (which holds new Files to upload)
+                // Existing images are handled differently now. 
+                // Since we are changing structure, we might need a migration or just show them using the new component if compatible.
+                // For now, let's load them if they match the new structure, or default to 'Others'
+                if (property.images && property.images.length > 0) {
+                    const loadedImages = property.images.map((img: string | { url: string; category?: string; label?: string }) => ({
+                        file: null, // No file object for existing images
+                        preview: typeof img === 'string' ? img : img.url,
+                        category: typeof img === 'string' ? 'Others' : (img.category || 'Others'),
+                        label: typeof img === 'string' ? '' : (img.label || '')
+                    }));
+                    setCategorizedImages(loadedImages);
+                }
             }
         } catch (error) {
             toast.error("Failed to load property for editing");
@@ -127,14 +168,11 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
         if (e.target.files && e.target.files[0]) {
             if (field === 'images') {
-                const newFiles = Array.from(e.target.files);
-                setFiles((prev: any) => ({ ...prev, images: [...prev.images, ...newFiles] }));
-                const newPreviews = newFiles.map(f => URL.createObjectURL(f));
-                setPreviews((prev: any) => ({ ...prev, images: [...(prev.images || []), ...newPreviews] }));
+                // 'images' field doesn't exist in FileState anymore, handled by categorizedImages
             } else {
                 const file = e.target.files[0];
-                setFiles((prev: any) => ({ ...prev, [field]: file }));
-                setPreviews((prev: any) => ({ ...prev, [field]: URL.createObjectURL(file) }));
+                setFiles((prev) => ({ ...prev, [field]: file }));
+                setPreviews((prev) => ({ ...prev, [field]: URL.createObjectURL(file) }));
             }
             // Clear error when file is selected
             if (errors[field]) {
@@ -143,10 +181,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
         }
     };
 
-    const removeImage = (idx: number) => {
-        setFiles((prev: any) => ({ ...prev, images: prev.images.filter((_: any, i: number) => i !== idx) }));
-        setPreviews((prev: any) => ({ ...prev, images: prev.images.filter((_: any, i: number) => i !== idx) }));
-    };
+
 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
@@ -155,15 +190,6 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
         if (!formData.propertyName.trim()) newErrors.propertyName = "Property name is required";
         if (!formData.description.trim() || formData.description.length < 20) {
             newErrors.description = "Description must be at least 20 characters";
-        }
-        if (!formData.pricePerNight || Number(formData.pricePerNight) < 100) {
-            newErrors.pricePerNight = "Price must be at least ₹100";
-        }
-        if (!formData.maxGuests || Number(formData.maxGuests) < 1) {
-            newErrors.maxGuests = "At least 1 guest required";
-        }
-        if (!formData.totalRooms || Number(formData.totalRooms) < 1) {
-            newErrors.totalRooms = "At least 1 room required";
         }
 
         // Address Validation
@@ -197,7 +223,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
 
         // Images Validation
         if (!files.coverImage && !previews.coverImage) newErrors.coverImage = "Cover image is required";
-        if (files.images.length === 0 && (!previews.images || previews.images.length === 0)) {
+        if (categorizedImages.length === 0) {
             newErrors.images = "At least one property image is required";
         }
 
@@ -219,10 +245,6 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                 propertyName: formData.propertyName,
                 propertyType: formData.propertyType,
                 description: formData.description,
-                pricePerNight: Number(formData.pricePerNight),
-                maxGuests: Number(formData.maxGuests),
-                totalRooms: Number(formData.totalRooms),
-                availableRooms: propertyId ? Number(formData.availableRooms) : Number(formData.totalRooms),
                 address: {
                     street: formData.street,
                     city: formData.city,
@@ -231,9 +253,10 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                     country: formData.country
                 },
                 location: {
-                    type: "Point",
-                    coordinates: [77.5946, 12.9716]
-                }
+                    type: "Point" as const,
+                    coordinates: [77.5946, 12.9716] as [number, number]
+                },
+                destinationId: formData.destinationId
             };
 
             let currentPropertyId = propertyId;
@@ -242,7 +265,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                 await partnerAuthService.updatePropertyDetails(propertyId, propertyData);
             } else {
                 const res = await partnerAuthService.createProperty(propertyData);
-                currentPropertyId = res._id || res.id;
+                currentPropertyId = res._id;
             }
 
             if (!currentPropertyId) throw new Error("Failed to get property ID");
@@ -271,11 +294,24 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                 upiId: formData.upiId
             });
 
-            // Step 5: Upload images (if new ones selected)
-            if (files.coverImage || files.images.length > 0) {
+            // Step 5: Upload images
+            const imagesToUpload = categorizedImages.filter(img => img.file); // Only new files
+            const metadata = imagesToUpload.map(img => ({
+                category: img.category,
+                label: img.label
+            }));
+
+            if (files.coverImage || imagesToUpload.length > 0) {
                 const imagesFd = new FormData();
                 if (files.coverImage) imagesFd.append('coverImage', files.coverImage);
-                files.images.forEach((img: File) => imagesFd.append('images', img));
+
+                imagesToUpload.forEach(img => {
+                    if (img.file) imagesFd.append('images', img.file);
+                });
+
+                // Append metadata as stringified JSON
+                imagesFd.append('imageMetadata', JSON.stringify(metadata));
+
                 await partnerAuthService.uploadPropertyImages(currentPropertyId, imagesFd);
             }
 
@@ -286,9 +322,10 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
             } else {
                 setTimeout(() => window.location.reload(), 1500);
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to save property");
-            console.error(error);
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err.response?.data?.message || "Failed to save property");
+            console.error(err);
         } finally {
             setLoading(false);
         }
@@ -372,8 +409,8 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.description}
                             onChange={handleInputChange}
                             rows={4}
-                            placeholder="Describe your property's best features..."
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.description ? 'border-red-500' : 'border-transparent'}`}
+                            placeholder="Describe your property&apos;s best features..."
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.description ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.description && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -382,65 +419,6 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                         )}
                     </div>
 
-                    <div id="pricePerNight" className="space-y-2">
-                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
-                            Price Per Night (₹) *
-                        </label>
-                        <input
-                            type="number"
-                            name="pricePerNight"
-                            value={formData.pricePerNight}
-                            onChange={handleInputChange}
-                            placeholder="1000"
-                            min="100"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.pricePerNight ? 'border-red-500' : 'border-transparent'}`}
-                        />
-                        {errors.pricePerNight && (
-                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
-                                <AlertCircle size={14} /> {errors.pricePerNight}
-                            </p>
-                        )}
-                    </div>
-
-                    <div id="maxGuests" className="space-y-2">
-                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
-                            Max Guests *
-                        </label>
-                        <input
-                            type="number"
-                            name="maxGuests"
-                            value={formData.maxGuests}
-                            onChange={handleInputChange}
-                            placeholder="4"
-                            min="1"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.maxGuests ? 'border-red-500' : 'border-transparent'}`}
-                        />
-                        {errors.maxGuests && (
-                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
-                                <AlertCircle size={14} /> {errors.maxGuests}
-                            </p>
-                        )}
-                    </div>
-
-                    <div id="totalRooms" className="space-y-2">
-                        <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
-                            Total Rooms *
-                        </label>
-                        <input
-                            type="number"
-                            name="totalRooms"
-                            value={formData.totalRooms}
-                            onChange={handleInputChange}
-                            placeholder="10"
-                            min="1"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.totalRooms ? 'border-red-500' : 'border-transparent'}`}
-                        />
-                        {errors.totalRooms && (
-                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
-                                <AlertCircle size={14} /> {errors.totalRooms}
-                            </p>
-                        )}
-                    </div>
                 </div>
             </div>
 
@@ -462,7 +440,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.street}
                             onChange={handleInputChange}
                             placeholder="123 Main Street"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.street ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.street ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.street && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -473,16 +451,30 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
 
                     <div id="city" className="space-y-2">
                         <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
-                            City *
+                            Destination (City) *
                         </label>
-                        <input
-                            type="text"
+                        <select
                             name="city"
                             value={formData.city}
-                            onChange={handleInputChange}
-                            placeholder="Bangalore"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.city ? 'border-red-500' : 'border-transparent'}`}
-                        />
+                            onChange={(e) => {
+                                const selectedName = e.target.value;
+                                const selectedDest = destinations.find(d => d.name === selectedName);
+                                setFormData(prev => ({
+                                    ...prev,
+                                    city: selectedName,
+                                    destinationId: selectedDest?._id || ""
+                                }));
+                                if (errors.city) setErrors(prev => ({ ...prev, city: "" }));
+                            }}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.city ? 'border-red-500' : 'border-transparent'} `}
+                        >
+                            <option value="">Select Destination</option>
+                            {destinations.map((dest) => (
+                                <option key={dest._id} value={dest.name}>
+                                    {dest.name}
+                                </option>
+                            ))}
+                        </select>
                         {errors.city && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
                                 <AlertCircle size={14} /> {errors.city}
@@ -500,7 +492,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.state}
                             onChange={handleInputChange}
                             placeholder="Karnataka"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.state ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.state ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.state && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -520,7 +512,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             onChange={handleInputChange}
                             placeholder="560001"
                             maxLength={6}
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.pincode ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.pincode ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.pincode && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -540,7 +532,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                         <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
                             Ownership Proof (Sale Deed/Tax Receipt) *
                         </label>
-                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors group ${errors.ownershipProof ? 'border-red-500' : 'border-gray-100'}`}>
+                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors group ${errors.ownershipProof ? 'border-red-500' : 'border-gray-100'} `}>
                             {previews.ownershipProof ? (
                                 <img src={previews.ownershipProof} className="w-full h-full object-cover" alt="Proof" />
                             ) : (
@@ -562,7 +554,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                         <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
                             Owner KYC (PAN/Aadhaar) *
                         </label>
-                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors group ${errors.ownerKYC ? 'border-red-500' : 'border-gray-100'}`}>
+                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors group ${errors.ownerKYC ? 'border-red-500' : 'border-gray-100'} `}>
                             {previews.ownerKYC ? (
                                 <img src={previews.ownerKYC} className="w-full h-full object-cover" alt="KYC" />
                             ) : (
@@ -597,7 +589,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.gstNumber}
                             onChange={handleInputChange}
                             placeholder="22AAAAA0000A1Z5"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.gstNumber ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.gstNumber ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.gstNumber && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -617,7 +609,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             onChange={handleInputChange}
                             placeholder="ABCDE1234F"
                             maxLength={10}
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold uppercase ${errors.panNumber ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold uppercase ${errors.panNumber ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.panNumber && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -630,7 +622,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                         <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
                             GST Certificate *
                         </label>
-                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors ${errors.gstCertificate ? 'border-red-500' : 'border-gray-100'}`}>
+                        <div className={`relative aspect - video rounded - 3xl border - 4 border - dashed bg - gray - 50 flex items - center justify - center overflow - hidden hover: border - red - 200 transition - colors ${errors.gstCertificate ? 'border-red-500' : 'border-gray-100'} `}>
                             {previews.gstCertificate ? (
                                 <img src={previews.gstCertificate} className="w-full h-full object-cover" alt="GST" />
                             ) : (
@@ -649,7 +641,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                         <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
                             PAN Card *
                         </label>
-                        <div className={`relative aspect-video rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors ${errors.panCard ? 'border-red-500' : 'border-gray-100'}`}>
+                        <div className={`relative aspect - video rounded - 3xl border - 4 border - dashed bg - gray - 50 flex items - center justify - center overflow - hidden hover: border - red - 200 transition - colors ${errors.panCard ? 'border-red-500' : 'border-gray-100'} `}>
                             {previews.panCard ? (
                                 <img src={previews.panCard} className="w-full h-full object-cover" alt="PAN" />
                             ) : (
@@ -681,7 +673,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.accountHolderName}
                             onChange={handleInputChange}
                             placeholder="John Doe"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.accountHolderName ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.accountHolderName ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.accountHolderName && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -700,7 +692,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.accountNumber}
                             onChange={handleInputChange}
                             placeholder="123456789012"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.accountNumber ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.accountNumber ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.accountNumber && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -720,7 +712,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             onChange={handleInputChange}
                             placeholder="SBIN0001234"
                             maxLength={11}
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold uppercase ${errors.ifscCode ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold uppercase ${errors.ifscCode ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.ifscCode && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -754,7 +746,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                         <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
                             Cover Image (Main Photo) *
                         </label>
-                        <div className={`relative aspect-[21/9] rounded-[40px] border-4 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden hover:border-red-200 transition-colors ${errors.coverImage ? 'border-red-500' : 'border-gray-100'}`}>
+                        <div className={`relative aspect - [21 / 9] rounded - [40px] border - 4 border - dashed bg - gray - 50 flex items - center justify - center overflow - hidden hover: border - red - 200 transition - colors ${errors.coverImage ? 'border-red-500' : 'border-gray-100'} `}>
                             {previews.coverImage ? (
                                 <img src={previews.coverImage} className="w-full h-full object-cover" alt="Cover" />
                             ) : (
@@ -773,39 +765,18 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                     </div>
 
                     <div id="images" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <label className="text-sm font-black text-gray-700 uppercase tracking-widest">
-                                Property Gallery (Up to 10 photos) *
-                            </label>
-                            <span className="text-xs font-black text-red-600">{files.images.length}/10</span>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-                            {previews.images?.map((url: string, idx: number) => (
-                                <div key={idx} className="relative aspect-square rounded-3xl overflow-hidden border-2 border-gray-50 shadow-sm">
-                                    <img src={url} className="w-full h-full object-cover" alt="Gallery" />
-                                    <button
-                                        type="button"
-                                        className="absolute top-2 right-2 p-1 bg-white/80 backdrop-blur-md rounded-full text-red-600 shadow-lg hover:bg-red-600 hover:text-white transition-all"
-                                        onClick={() => removeImage(idx)}
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </div>
-                            ))}
-                            {files.images.length < 10 && (
-                                <label className={`relative aspect-square rounded-3xl border-4 border-dashed bg-gray-50 flex items-center justify-center cursor-pointer hover:border-red-200 transition-colors group ${errors.images ? 'border-red-500' : 'border-gray-100'}`}>
-                                    <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-100"><Upload className="text-gray-400 group-hover:text-red-500 transition-colors" /></div>
-                                    <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'images')} />
-                                </label>
-                            )}
-                        </div>
-                        {errors.images && (
-                            <p className="text-red-600 text-sm font-medium flex items-center gap-1">
-                                <AlertCircle size={14} /> {errors.images}
-                            </p>
-                        )}
+                        <CategorizedImageUpload
+                            images={categorizedImages}
+                            onChange={setCategorizedImages}
+                            error={errors.images}
+                        />
                     </div>
                 </div>
+                {errors.images && (
+                    <p className="text-red-600 text-sm font-medium flex items-center gap-1">
+                        <AlertCircle size={14} /> {errors.images}
+                    </p>
+                )}
             </div>
 
             {/* Submit Button */}

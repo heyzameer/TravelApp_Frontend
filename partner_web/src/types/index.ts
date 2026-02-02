@@ -47,7 +47,7 @@ export interface User {
     profilePicture?: string;
     aadharStatus?: string;
     aadharRejectionReason?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -248,7 +248,7 @@ export interface PartnerProfile {
   phone: string;
   personalDocuments: {
     aadharStatus: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   status: string;
   totalOrders: number;
@@ -413,7 +413,11 @@ export interface Property {
   isVerified: boolean;
   isActive: boolean;
   verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
-
+  overallRejectionReason?: string;
+  propertyId?: string;
+  submittedForVerificationAt?: string;
+  verifiedAt?: string;
+  destinationId?: string;
   ownershipDocuments?: {
     ownershipProof?: string;
     ownerKYC?: string;
@@ -439,6 +443,83 @@ export interface Property {
   };
 }
 
+export interface Room {
+  _id: string;
+  propertyId: string;
+  roomName?: string;
+  roomNumber: string;
+  roomType: string;
+  sharingType: string;
+  baseOccupancy: number;
+  minOccupancy: number;
+  maxOccupancy: number;
+  basePricePerNight: number;
+  extraPersonCharge: number;
+  amenities: string[];
+  bedConfiguration: string;
+  hasSelfCooking: boolean;
+  images: {
+    url: string;
+    category: string;
+    label?: string;
+  }[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Activity {
+  _id: string;
+  propertyId: string;
+  name: string;
+  description: string;
+  duration: number; // minutes
+  pricePerPerson: number;
+  maxParticipants: number;
+  activityType: 'property_based' | 'platform_level';
+  availableTimeSlots: string[];
+  requiresBooking?: boolean;
+  isActive: boolean;
+  images?: string[];
+}
+
+export interface MealPlan {
+  _id: string;
+  propertyId: string;
+  name: string;
+  description: string;
+  mealsIncluded: string[];
+  pricePerPersonPerDay: number;
+  isActive: boolean;
+}
+
+export interface Package {
+  _id: string;
+  propertyId: string;
+  packageName: string;
+  description: string;
+  roomTypes: string[];
+  numberOfNights: number;
+  mealPlanId?: string | { _id: string; name: string };
+  includedActivities: { activityId: string | { _id: string; name: string }; sessionsIncluded: number }[];
+  packagePricePerPerson: number;
+  minPersons: number;
+  maxPersons: number;
+  validFrom: string;
+  validUntil: string;
+  isActive: boolean;
+  images?: string[];
+}
+
+export interface Destination {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  coverImage: string;
+  isActive: boolean;
+}
+
 export interface PropertyOnboardingStatus {
   step: number;
   isComplete: boolean;
@@ -454,28 +535,103 @@ export interface PropertyOnboardingStatus {
 }
 
 export interface Booking {
-  id: string;
-  createdAt: string;
-  propertyId?: string;
-  propertyName?: string;
-  checkInDate?: string;
+  _id: string;
+  bookingId: string;
+  userId: User | string;
+  partnerId: string;
+  propertyId: Property | string;
+  bookingType: 'accommodation' | 'activity_only' | 'package';
+
+  checkInDate: string;
   checkOutDate?: string;
-  numberOfGuests?: number;
-  // Legacy fields for backward compatibility
-  pickupAddress?: Address;
-  dropoffAddress?: Address;
-  totalAmount: number;
-  status: string;
-  estimatedTime?: string;
-  distance?: number;
-  paymentMethod?: string;
-  vehicleName?: string;
-  driverId?: string;
-  driverName?: string;
-  driver?: Driver;
+  numberOfNights?: number;
+
+  totalGuests: number;
+  guestDetails: {
+    name: string;
+    age: number;
+    gender: 'Male' | 'Female' | 'Other';
+  }[];
+
+  roomBookings: {
+    roomId: string;
+    roomNumber?: string;
+    numberOfGuests: number;
+    pricePerNight: number;
+    totalRoomPrice: number;
+  }[];
+
+  mealPlanId?: string;
+  mealPlanPrice?: number;
+
+  activityBookings?: {
+    activityId: string;
+    date: string;
+    timeSlot?: string;
+    participants: number;
+    pricePerPerson: number;
+    totalActivityPrice: number;
+  }[];
+
+  roomTotalPrice: number;
+  mealTotalPrice: number;
+  activityTotalPrice: number;
+  packageDiscount: number;
+  finalPrice: number;
+
+  paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
+  paymentId?: string;
+
+  status: 'pending_payment' | 'payment_completed' | 'confirmed' | 'rejected' | 'checked_in' | 'checked_out' | 'cancelled';
+
+  partnerApprovalStatus: 'pending' | 'approved' | 'rejected';
+  approvedAt?: string;
+  rejectionReason?: string;
+  rejectedAt?: string;
+
+  cancellationReason?: string;
+
+  bookedAt: string;
+  confirmedAt?: string;
+  cancelledAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface Driver {
-  fullName: string;
-  mobileNumber: number;
+export interface CustomPricing {
+  basePricePerNight: number;
+  extraPersonCharge: number;
+}
+
+export interface CalendarDay {
+  date: string;
+  isBlocked: boolean;
+  blockedReason?: 'booking' | 'maintenance' | 'manual';
+  bookingId?: string;
+  pricing: CustomPricing;
+}
+
+export interface AvailabilityCalendarResponse {
+  roomId: string;
+  month: number;
+  year: number;
+  calendar: CalendarDay[];
+}
+
+export interface UploadProgress {
+  loaded: number;
+  total: number;
+  percentage: number;
+}
+
+export interface VerificationResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface ImageFile {
+  file: File | null;
+  preview: string;
+  category: string;
+  label: string;
 }

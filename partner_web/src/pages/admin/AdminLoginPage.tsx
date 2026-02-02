@@ -24,9 +24,9 @@ const AdminLoginPage: React.FC = () => {
       toast.success("Successfully signed in!");
       // Redirect to admin dashboard
       navigate("/admin/dashboard");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Admin login error:", error);
-      const errorMessage = error || "Login failed. Please try again.";
+      const errorMessage = (error as { message?: string })?.message || "Login failed. Please try again.";
       toast.error(errorMessage);
     } finally {
       setLoading(false);

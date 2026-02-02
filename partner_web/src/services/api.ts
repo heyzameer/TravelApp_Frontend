@@ -3,6 +3,11 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { toast } from 'react-hot-toast';
 import { authService } from './auth';
 
+interface FailedRequest {
+  resolve: (token: string | null) => void;
+  reject: (error: any) => void;
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1',
   timeout: 10000,
@@ -28,7 +33,7 @@ api.interceptors.request.use(
 
 // Response interceptor
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: FailedRequest[] = [];
 
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach((prom) => {
@@ -54,7 +59,7 @@ api.interceptors.response.use(
       !originalRequest.url?.includes('/auth/refresh-token') &&
       !originalRequest.url?.includes('/auth/logout')
     ) {
-      const errorMessage = (error.response?.data as any)?.message || "";
+      const errorMessage = (error.response?.data as { message?: string })?.message || "";
 
       // IF ACCOUNT IS DEACTIVATED, DO NOT REFRESH - LOGOUT IMMEDIATELY
       if (errorMessage.toLowerCase().includes("deactivated")) {
@@ -67,7 +72,7 @@ api.interceptors.response.use(
       }
 
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise<string | null>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
@@ -103,7 +108,7 @@ api.interceptors.response.use(
         isRefreshing = false;
 
         // Check if the refresh error itself was deactivation (just in case)
-        const refreshErrorMessage = (refreshError.response?.data as any)?.message || "";
+        const refreshErrorMessage = (refreshError.response?.data as { message?: string })?.message || "";
 
         if (refreshErrorMessage.toLowerCase().includes("deactivated")) {
           toast.error("Your account has been deactivated. Please contact support.");

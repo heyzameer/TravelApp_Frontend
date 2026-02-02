@@ -23,11 +23,10 @@ export const fetchAllPartners = createAsyncThunk(
     'partners/fetchAll',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await adminService.getAllPartners();
-            console.log('Fetch All Partners Response:', response);
-            return response.data.partners.data || [];
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch partners');
+            return await adminService.getAllPartners();
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to fetch partners');
         }
     }
 );
@@ -36,10 +35,10 @@ export const fetchPartnerRequests = createAsyncThunk(
     'partners/fetchRequests',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await adminService.getAllPartnersRequest();
-            return response.partners || [];
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner requests');
+            return await adminService.getAllPartnersRequest();
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to fetch partner requests');
         }
     }
 );
@@ -48,10 +47,10 @@ export const fetchPartnerById = createAsyncThunk(
     'partners/fetchById',
     async (partnerId: string, { rejectWithValue }) => {
         try {
-            const response = await adminService.getPartnerById(partnerId);
-            return response.partner;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner');
+            return await adminService.getPartnerById(partnerId);
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to fetch partner');
         }
     }
 );
@@ -59,14 +58,14 @@ export const fetchPartnerById = createAsyncThunk(
 export const updatePartner = createAsyncThunk(
     'partners/update',
     async (
-        { partnerId, partnerData }: { partnerId: string; partnerData: any },
+        { partnerId, partnerData }: { partnerId: string; partnerData: Partial<PartnerUser> },
         { rejectWithValue }
     ) => {
         try {
-            const response = await adminService.updatePartner(partnerId, partnerData);
-            return response.data.partner;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update partner');
+            return await adminService.updatePartner(partnerId, partnerData);
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to update partner');
         }
     }
 );
@@ -75,13 +74,13 @@ export const approvePartner = createAsyncThunk(
     'partners/approve',
     async (partnerId: string, { rejectWithValue }) => {
         try {
-            const response = await adminService.updatePartner(partnerId, {
+            return await adminService.updatePartner(partnerId, {
                 status: 'verified',
                 isVerified: true,
             });
-            return response.partner;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to approve partner');
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to approve partner');
         }
     }
 );
@@ -90,13 +89,13 @@ export const rejectPartner = createAsyncThunk(
     'partners/reject',
     async (partnerId: string, { rejectWithValue }) => {
         try {
-            const response = await adminService.updatePartner(partnerId, {
+            return await adminService.updatePartner(partnerId, {
                 status: 'rejected',
                 isVerified: false,
             });
-            return response.partner;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to reject partner');
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to reject partner');
         }
     }
 );
@@ -107,8 +106,9 @@ export const deletePartner = createAsyncThunk(
         try {
             await adminService.deletePartner(partnerId);
             return partnerId;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to delete partner');
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to delete partner');
         }
     }
 );

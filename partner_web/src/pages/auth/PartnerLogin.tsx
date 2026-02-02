@@ -15,9 +15,10 @@ const PartnerLogin: React.FC = () => {
             await partnerAuthService.requestLoginOtp(email);
             toast.success("OTP sent to your email!");
             navigate("/partner/verify-otp", { state: { email } });
-        } catch (error: any) {
-            console.error("Partner login request error:", error);
-            const errorMessage = error.response?.data?.message || "Failed to send OTP. Please try again.";
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            console.error("Partner login request error:", err);
+            const errorMessage = err.response?.data?.message || "Failed to send OTP. Please try again.";
             toast.error(errorMessage);
         } finally {
             setLoading(false);
@@ -73,7 +74,7 @@ const PartnerLogin: React.FC = () => {
 
                     <div className="mt-6 text-center">
                         <p className="text-gray-600">
-                            Don't have an account?{" "}
+                            Don&apos;t have an account?{" "}
                             <Link to="/partner/register" className="text-red-500 hover:text-red-600 font-medium">
                                 Register Now
                             </Link>

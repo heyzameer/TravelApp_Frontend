@@ -1,6 +1,7 @@
 import api from './api';
 import { Property, PropertyAddress } from '@/types/property';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapBackendToFrontend = (backendProp: any): Property => {
     // Handle address mapping
     const address: PropertyAddress = {

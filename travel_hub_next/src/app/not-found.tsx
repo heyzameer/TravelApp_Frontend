@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { TreePine, Home, Search, ArrowLeft } from "lucide-react";
+import { TreePine, Home } from "lucide-react";
 
 export default function NotFound() {
     return (
@@ -17,7 +17,7 @@ export default function NotFound() {
                 <h1 className="text-6xl font-black text-slate-900 mb-4 tracking-tight">404</h1>
                 <h2 className="text-2xl font-bold text-slate-800 mb-4">Lost in the Woods?</h2>
                 <p className="text-slate-500 text-lg mb-8 leading-relaxed">
-                    The path you're looking for seems to have grown over. Don't worry, even the best explorers get lost sometimes.
+                    The path you&apos;re looking for seems to have grown over. Don&apos;t worry, even the best explorers get lost sometimes.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -41,7 +41,7 @@ export default function NotFound() {
     );
 }
 
-function CompassIcon(props: any) {
+function CompassIcon(props: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
             {...props}

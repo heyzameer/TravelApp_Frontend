@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Eye, EyeOff, TreePine, Sparkles } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -26,8 +27,9 @@ export default function LoginPage() {
 
         try {
             await login(formData);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            setError(error.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {
             setIsLoading(false);
         }
@@ -38,10 +40,12 @@ export default function LoginPage() {
             {/* Left Side - Hero Image (Hidden on mobile) */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-primary via-indigo-600 to-purple-700 overflow-hidden">
                 <div className="absolute inset-0">
-                    <img
+                    <Image
                         src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=1200"
                         alt="Nature"
-                        className="w-full h-full object-cover opacity-20"
+                        className="object-cover opacity-20"
+                        fill
+                        priority
                     />
                 </div>
                 <div className="relative z-10 flex flex-col justify-center items-start p-16 text-white">
@@ -53,7 +57,7 @@ export default function LoginPage() {
                     </Link>
                     <p className="text-2xl font-semibold mb-4 text-indigo-100">Welcome Back!</p>
                     <p className="text-lg text-indigo-200 max-w-md leading-relaxed">
-                        Continue your journey to discover verified homestays and authentic local adventures in nature's lap.
+                        Continue your journey to discover verified homestays and authentic local adventures in nature&apos;s lap.
                     </p>
                     <div className="mt-12 space-y-4">
                         <div className="flex items-center gap-3">
@@ -166,12 +170,18 @@ export default function LoginPage() {
                             onClick={() => window.location.href = 'http://localhost:3000/api/v1/auth/google'}
                             className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border-2 border-slate-200 text-slate-700 py-3.5 rounded-xl font-semibold transition-all hover:border-slate-300"
                         >
-                            <img src="https://www.google.com/favicon.ico" alt="Google" className="h-5 w-5" />
+                            <div className="relative h-5 w-5">
+                                <Image
+                                    src="https://www.google.com/favicon.ico"
+                                    alt="Google"
+                                    fill
+                                />
+                            </div>
                             Continue with Google
                         </button>
 
                         <div className="mt-8 text-center text-sm text-slate-600">
-                            Don't have an account?{' '}
+                            Don&apos;t have an account?{' '}
                             <Link href="/auth/signup" className="text-primary font-bold hover:text-primary-hover transition-colors">
                                 Sign up
                             </Link>

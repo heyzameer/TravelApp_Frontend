@@ -82,11 +82,14 @@ export default function Navbar() {
                                     }`}
                             >
                                 {user.profilePicture ? (
-                                    <img
-                                        src={user.profilePicture}
-                                        alt={user.fullName}
-                                        className="h-8 w-8 rounded-full object-cover border-2 border-white/50"
-                                    />
+                                    <div className="relative h-8 w-8">
+                                        <Image
+                                            src={user.profilePicture}
+                                            alt={user.fullName}
+                                            className="rounded-full object-cover border-2 border-white/50"
+                                            fill
+                                        />
+                                    </div>
                                 ) : (
                                     <UserCircle className="h-8 w-8" />
                                 )}
@@ -150,11 +153,14 @@ export default function Navbar() {
                             <div className="pb-4 border-b border-slate-100">
                                 <div className="flex items-center gap-3 mb-3">
                                     {user.profilePicture ? (
-                                        <img
-                                            src={user.profilePicture}
-                                            alt={user.fullName}
-                                            className="h-12 w-12 rounded-full object-cover border-2 border-primary/20"
-                                        />
+                                        <div className="relative h-12 w-12">
+                                            <Image
+                                                src={user.profilePicture}
+                                                alt={user.fullName}
+                                                className="rounded-full object-cover border-2 border-primary/20"
+                                                fill
+                                            />
+                                        </div>
                                     ) : (
                                         <UserCircle className="h-12 w-12 text-primary" />
                                     )}
