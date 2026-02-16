@@ -74,6 +74,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({ room, isOpen, 
                                 className="object-cover"
                                 fill
                                 priority
+                                sizes="(max-width: 768px) 100vw, 50vw"
                             />
                         ) : (
                             <div className="absolute inset-0 flex items-center justify-center text-gray-400">
@@ -88,7 +89,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({ room, isOpen, 
                                     onClick={() => setActiveImageIndex(idx)}
                                     className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${idx === activeImageIndex ? 'border-white ring-2 ring-black/20' : 'border-transparent opacity-70 hover:opacity-100'}`}
                                 >
-                                    <Image src={img} alt="" fill className="object-cover" />
+                                    <Image src={img} alt="" fill className="object-cover" sizes="100px" />
                                 </button>
                             ))}
                         </div>

@@ -1,4 +1,5 @@
-import React, { useState} from 'react';
+import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
 // import { Autocomplete } from '@react-google-maps/api';
 import { useNavigate } from 'react-router-dom';
 // import { useGoogleMaps } from '../../../../contexts/GoogleMapsProvider';
@@ -8,12 +9,12 @@ const Calculator: React.FC = () => {
   const [city, setCity] = useState('Bangalore');
   // setCity('Bangalore');
   console.log("city", setCity);
-  
+
   // const [origin, setOrigin] = useState('');
   // const [destination, setDestination] = useState('');
   const [distance, setDistance] = useState('');
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
-  
+
   // const originRef = useRef<google.maps.places.Autocomplete | null>(null);
   // const destinationRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -47,7 +48,7 @@ const Calculator: React.FC = () => {
         setCalculatedPrice(price);
       }
     } else {
-      alert('Please enter a distance to calculate price');
+      toast.error('Please enter a distance to calculate price');
     }
   };
 
@@ -83,12 +84,12 @@ const Calculator: React.FC = () => {
                     />
                   </Autocomplete>
                 ) : ( */}
-                  <input
-                    type="text"
-                    placeholder="Loading..."
-                    className="w-full pl-10 pr-4 py-2 border rounded-md"
-                    disabled
-                  />
+                <input
+                  type="text"
+                  placeholder="Loading..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-md"
+                  disabled
+                />
                 {/* )} */}
               </div>
             </div>
@@ -107,12 +108,12 @@ const Calculator: React.FC = () => {
                     />
                   </Autocomplete>
                 ) : ( */}
-                  <input
-                    type="text"
-                    placeholder="Loading..."
-                    className="w-full pl-10 pr-4 py-2 border rounded-md"
-                    disabled
-                  />
+                <input
+                  type="text"
+                  placeholder="Loading..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-md"
+                  disabled
+                />
                 {/* )} */}
               </div>
             </div>
@@ -135,7 +136,7 @@ const Calculator: React.FC = () => {
             <div className="mt-4 p-4 bg-green-50 border border-green-100 rounded-md">
               <p className="font-medium text-green-800">Estimated Price: ₹{calculatedPrice.toFixed(2)}</p>
               <p className="text-sm text-green-600 mt-1">This is a base estimate. Final price may vary based on vehicle type and delivery speed.</p>
-              <button 
+              <button
                 onClick={handleProceedToBook}
                 className="mt-3 bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors"
               >
@@ -145,7 +146,7 @@ const Calculator: React.FC = () => {
           )}
 
           <div className="mt-4 flex justify-end">
-            <button 
+            <button
               onClick={handleCheckPrice}
               className="bg-indigo-900 text-white py-2 px-6 rounded-md hover:bg-indigo-800"
             >

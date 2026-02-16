@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { AppDispatch, RootState } from '../../../store';
 import { fetchMealPlans, deleteMealPlan } from '../../../features/mealPlans/mealPlanSlice';
-import { Plus, Trash2, Utensils, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Utensils } from 'lucide-react';
+import ConfirmModal from '../../../components/common/ConfirmModal';
 
 const MealPlanList: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
@@ -17,10 +18,28 @@ const MealPlanList: React.FC = () => {
         }
     }, [dispatch, propertyId]);
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this meal plan?')) {
-            await dispatch(deleteMealPlan(id));
-        }
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
+
+    const handleDelete = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Meal Plan',
+            message: 'Are you sure you want to delete this meal plan? This will remove it from your offerings.',
+            onConfirm: async () => {
+                await dispatch(deleteMealPlan(id));
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
     };
 
     return (
@@ -85,6 +104,14 @@ const MealPlanList: React.FC = () => {
                     ))}
                 </div>
             )}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                variant="danger"
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };

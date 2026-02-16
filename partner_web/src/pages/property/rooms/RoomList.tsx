@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../../store/index';
 import { fetchRooms, deleteRoom } from '../../../features/rooms/roomSlice';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Home, Users, CheckCircle, XCircle, ArrowLeft, BedDouble, Calendar, Utensils } from 'lucide-react';
 import type { Room } from '../../../types';
+import ConfirmModal from '../../../components/common/ConfirmModal';
 
 const RoomList: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
@@ -18,13 +19,31 @@ const RoomList: React.FC = () => {
         }
     }, [dispatch, propertyId]);
 
-    const handleDelete = async (roomId: string) => {
-        if (window.confirm('Are you sure you want to delete this room?')) {
-            await dispatch(deleteRoom(roomId));
-            if (propertyId) {
-                dispatch(fetchRooms(propertyId));
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
+
+    const handleDelete = (roomId: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Room',
+            message: 'Are you sure you want to delete this room? This action cannot be undone and will remove all associated data.',
+            onConfirm: async () => {
+                await dispatch(deleteRoom(roomId));
+                if (propertyId) {
+                    dispatch(fetchRooms(propertyId));
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
             }
-        }
+        });
     };
 
     return (
@@ -194,6 +213,14 @@ const RoomList: React.FC = () => {
                     </div>
                 )}
             </div>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                variant="danger"
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };

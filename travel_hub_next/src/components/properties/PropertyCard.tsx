@@ -2,8 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { MapPin, Star, Heart } from 'lucide-react';
+import { MapPin, Star } from 'lucide-react';
 import Image from 'next/image';
+import WishlistButton from '../shared/WishlistButton';
 
 interface PropertyCardProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,15 +16,19 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
         <Link href={`/properties/${property._id}`} className="group block bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
             <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
                 <Image
-                    src={property.coverImage || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070'}
+                    src={property.coverImage && property.coverImage.length > 5 ? property.coverImage : 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070'}
                     alt={property.propertyName}
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                     fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    suppressHydrationWarning
+                    unoptimized
                 />
 
-                <button className="absolute top-4 right-4 p-2.5 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white hover:text-red-500 transition-colors z-10">
-                    <Heart size={18} />
-                </button>
+                <WishlistButton
+                    propertyId={property._id}
+                    className="absolute top-4 right-4 p-2.5 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/20 transition-colors z-10"
+                />
 
                 <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black text-gray-900 flex items-center gap-1 shadow-sm">
                     <Star size={12} className="text-yellow-500 fill-yellow-500" /> {property.rating || 'New'} ({property.totalReviews || 0})

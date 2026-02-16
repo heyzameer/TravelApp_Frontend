@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft,
   CheckCircle,
@@ -11,7 +11,7 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import type { PartnerUser } from '../../../../types';
+import type { PartnerUser, User as UserType } from '../../../../types';
 import { adminService } from '../../../../services/admin';
 
 
@@ -30,40 +30,22 @@ const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBa
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('personal');
 
-  useEffect(() => {
-    fetchPartnerDetails();
-  }, [partnerId]);
-
-  const fetchPartnerDetails = async () => {
+  const fetchPartnerDetails = useCallback(async () => {
     try {
       const partnerRes = await adminService.getPartnerById(partnerId);
       console.log('Fetched partner details:', partnerRes);
-      const vehicleId = partnerRes?.data?.partner?.vehicleId;
-
-      let vehicleDetails = null;
-
-
-      if (vehicleId) {
-        try {
-          const vehicleRes =  {};
-          console.log('Fetched vehicle details:', vehicleRes);
-          vehicleDetails = vehicleRes || null;
-        }
-        catch (error) {
-          console.error('Error fetching vehicle details:', error);
-          toast.error('Failed to fetch vehicle details');
-        }
-      };
-      setPartner(partnerRes.data.partner ? { ...partnerRes?.data?.partner, vehicleDetails } : null);
+      setPartner(partnerRes);
     } catch (error) {
       console.error('Error fetching partner details:', error);
       toast.error('Failed to fetch partner details');
     } finally {
       setLoading(false);
     }
-  };
+  }, [partnerId]);
 
-
+  useEffect(() => {
+    fetchPartnerDetails();
+  }, [fetchPartnerDetails]);
 
   const handleBack = () => {
     onBack();
@@ -75,11 +57,12 @@ const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBa
     { key: 'vehicleDetailsCompleted', label: 'Vehicle Details' }
   ];
 
-  const handleVerification = async (field: string) => {
+  const handleVerification = async (field: keyof PartnerUser) => {
     try {
-      const response = await driverService.verifyDocument(partnerId, field);
+      // Use adminService instead of driverService
+      const response = await adminService.updateUser(partnerId, { [field]: true } as unknown as Partial<UserType>);
 
-      if (response.success) {
+      if (response) {
         setPartner(prev => prev ? { ...prev, [field]: true } : null);
         toast.success('Verification updated successfully');
       }
@@ -146,7 +129,7 @@ const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBa
               <h3 className="text-2xl font-bold text-gray-800">{partner.fullName}</h3>
               <div className="flex items-center mt-2 text-gray-600">
                 <span className="mr-4">{partner.email}</span>
-                <span>{partner.phone}</span>
+                <span>{partner.mobileNumber}</span>
               </div>
             </div>
           </div>
@@ -160,8 +143,8 @@ const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBa
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center px-4 py-3 border-b-2 transition-colors ${activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
               >
                 {tab.icon}
@@ -182,7 +165,7 @@ const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBa
               items={[
                 { label: "Full Name", value: partner.fullName },
                 { label: "Email", value: partner.email },
-                { label: "Mobile", value: partner.phone },
+                { label: "Mobile", value: partner.mobileNumber || '' },
                 { label: "Date of Birth", value: partner.dateOfBirth },
               ]}
             />
@@ -195,9 +178,8 @@ const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBa
               title="Vehicle Details"
               icon={<Truck className="text-blue-500" />}
               items={[
-                { label: "Vehicle Type", value: partner.vehicalDocuments.vehicleType
-                },
-                { label: "Registration Number", value: partner.vehicalDocuments.registrationNumber }
+                { label: "Vehicle Type", value: partner.vehicleType || '' },
+                { label: "Registration Number", value: partner.registrationNumber || '' }
               ]}
             />
             <DocumentsCard
@@ -207,7 +189,7 @@ const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBa
                   label: "License",
                   path: partner.personalDocuments.licenseFront,
                   docType: "license",
-                  isComplete: Boolean(partner.personalDocuments.licenseFront,),
+                  isComplete: Boolean(partner.personalDocuments.licenseFront),
                   verificationField: "vehicleDetailsCompleted"
                 },
                 {
@@ -242,10 +224,6 @@ const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBa
                 { label: "IFSC Code", value: partner.bankingDetails.ifscCode },
                 { label: "UPI ID", value: partner.bankingDetails.upiId }
               ]}
-              // verificationStatus={{
-              //   isVerified: partner.bankDetailsCompleted,
-              //   onVerify: () => handleVerification('bankDetailsCompleted')
-              // }}
             />
           </div>
         )}
@@ -347,7 +325,7 @@ const DocumentsCard: React.FC<{
     path?: string;
     docType: string;
     isComplete: boolean;
-    verificationField?: keyof Pick<PartnerUser, 'bankDetailsCompleted' | 'personalDocumentsCompleted' | 'vehicleDetailsCompleted' >;
+    verificationField?: keyof Pick<PartnerUser, 'bankDetailsCompleted' | 'personalDocumentsCompleted' | 'vehicleDetailsCompleted'>;
   }>;
   partner: PartnerUser;
   onVerify: () => void;
@@ -397,8 +375,8 @@ const VerificationBadge: React.FC<{ partner: PartnerUser }> = ({ partner }) => {
 
   return (
     <div className={`flex items-center px-4 py-2 rounded-full ${isFullyVerified
-        ? 'bg-green-50 text-green-700'
-        : 'bg-yellow-50 text-yellow-700'
+      ? 'bg-green-50 text-green-700'
+      : 'bg-yellow-50 text-yellow-700'
       }`}>
       {isFullyVerified ? (
         <Shield className="w-4 h-4 mr-2" />
@@ -437,4 +415,4 @@ const VerificationCard: React.FC<{
   </div>
 );
 
-export default PartnerRequestView; 
+export default PartnerRequestView;

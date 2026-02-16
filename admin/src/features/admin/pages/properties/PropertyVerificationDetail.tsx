@@ -39,8 +39,8 @@ const PropertyVerificationDetail: React.FC = () => {
             toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} documents updated`);
             setIsRejectModalOpen(false);
             setRejectSection(null);
-        } catch (err: any) {
-            toast.error(err || `Failed to update ${section} status`);
+        } catch (err: unknown) {
+            toast.error((typeof err === 'string' ? err : '') || `Failed to update ${section} status`);
         } finally {
             setIsActionLoading(false);
         }
@@ -59,8 +59,8 @@ const PropertyVerificationDetail: React.FC = () => {
             toast.success(`Property ${status} successfully`);
             setIsRejectModalOpen(false);
             setRejectSection(null);
-        } catch (err: any) {
-            toast.error(err || 'Failed to verify property');
+        } catch (err: unknown) {
+            toast.error((typeof err === 'string' ? err : '') || 'Failed to verify property');
         } finally {
             setIsActionLoading(false);
         }
@@ -77,7 +77,7 @@ const PropertyVerificationDetail: React.FC = () => {
         if (rejectSection === 'final') {
             await handleFinalVerify('rejected', reason);
         } else {
-            await handleDocumentAction(rejectSection as any, 'rejected', reason);
+            await handleDocumentAction(rejectSection as 'ownership' | 'tax' | 'banking', 'rejected', reason);
         }
     };
 
@@ -135,7 +135,8 @@ const PropertyVerificationDetail: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-3xl font-bold text-gray-900">{propertyName}</h1>
+                            <h1 className="text-3xl font-black text-gray-900">{propertyName}</h1>
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                             <VerificationStatusBadge status={verificationStatus === 'verified' ? 'approved' : verificationStatus === 'pending' ? 'manual_review' : verificationStatus as any} />
                         </div>
                         <div className="flex items-center gap-4 text-gray-600">
@@ -180,7 +181,7 @@ const PropertyVerificationDetail: React.FC = () => {
                     <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
                         <div className="aspect-[21/9] relative">
                             <img
-                                src={coverImage || images?.[0] || '/hero-prop.jpg'}
+                                src={coverImage || images?.[0]?.url || '/hero-prop.jpg'}
                                 alt={propertyName}
                                 className="w-full h-full object-cover"
                             />
@@ -189,11 +190,11 @@ const PropertyVerificationDetail: React.FC = () => {
                             </div>
                         </div>
                         <div className="p-6">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4">Property Gallery</h3>
+                            <h3 className="text-xl font-black text-gray-900 mb-6 uppercase tracking-widest">Property Gallery</h3>
                             <div className="grid grid-cols-4 gap-4">
                                 {images?.map((img, idx) => (
                                     <div key={idx} className="aspect-square rounded-xl overflow-hidden cursor-pointer border border-gray-100 group">
-                                        <img src={img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                        <img src={img.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                                     </div>
                                 ))}
                             </div>

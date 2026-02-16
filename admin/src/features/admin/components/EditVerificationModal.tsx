@@ -39,7 +39,7 @@ const EditVerificationModal: React.FC<EditVerificationModalProps> = ({
         e.preventDefault();
 
         // Prepare payload - only include changed fields or all fields
-        const payload: any = {
+        const payload: Record<string, unknown> = {
             fullName: formData.fullName,
             dateOfBirth: formData.dateOfBirth,
             gender: formData.gender,

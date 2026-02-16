@@ -62,27 +62,27 @@ class SocketService {
     }
 
     // Event listeners
-    public onPartnerAadhaarSubmitted(callback: (data: any) => void): void {
+    public onPartnerAadhaarSubmitted(callback: (data: Record<string, unknown>) => void): void {
         this.socket?.on('PARTNER_AADHAAR_SUBMITTED', callback);
     }
 
-    public onPartnerVerificationApproved(callback: (data: any) => void): void {
+    public onPartnerVerificationApproved(callback: (data: Record<string, unknown>) => void): void {
         this.socket?.on('PARTNER_VERIFICATION_APPROVED', callback);
     }
 
-    public onPartnerVerificationRejected(callback: (data: any) => void): void {
+    public onPartnerVerificationRejected(callback: (data: Record<string, unknown>) => void): void {
         this.socket?.on('PARTNER_VERIFICATION_REJECTED', callback);
     }
 
-    public offPartnerAadhaarSubmitted(callback: (data: any) => void): void {
+    public offPartnerAadhaarSubmitted(callback: (data: Record<string, unknown>) => void): void {
         this.socket?.off('PARTNER_AADHAAR_SUBMITTED', callback);
     }
 
-    public offPartnerVerificationApproved(callback: (data: any) => void): void {
+    public offPartnerVerificationApproved(callback: (data: Record<string, unknown>) => void): void {
         this.socket?.off('PARTNER_VERIFICATION_APPROVED', callback);
     }
 
-    public offPartnerVerificationRejected(callback: (data: any) => void): void {
+    public offPartnerVerificationRejected(callback: (data: Record<string, unknown>) => void): void {
         this.socket?.off('PARTNER_VERIFICATION_REJECTED', callback);
     }
 }

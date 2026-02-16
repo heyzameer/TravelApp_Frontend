@@ -2,7 +2,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function Loading() {
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-white z-50">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-white z-50" suppressHydrationWarning>
             <div className="relative">
                 <div className="w-16 h-16 rounded-full border-4 border-gray-100"></div>
                 <div className="w-16 h-16 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin absolute inset-0"></div>

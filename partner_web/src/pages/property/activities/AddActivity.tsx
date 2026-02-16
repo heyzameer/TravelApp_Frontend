@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { AppDispatch } from '../../../store';
 import { createActivity } from '../../../features/activities/activitySlice';
+import { activityService } from '../../../services/activityService';
 import { ArrowLeft, Save, Loader2, Compass } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -20,12 +21,28 @@ const AddActivity: React.FC = () => {
 
     const [formData, setFormData] = useState({
         name: '',
+        category: '',
         description: '',
         duration: '',
         pricePerPerson: '',
         maxParticipants: '',
-        availableTimeSlots: [] as string[]
+        availableTimeSlots: [] as string[],
+        images: [] as string[]
     });
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const url = await activityService.uploadImage(file);
+            setFormData(prev => ({ ...prev, images: [...prev.images, url] }));
+            toast.success('Image uploaded');
+        } catch (error) {
+            console.error('Failed to upload image', error);
+            toast.error('Failed to upload image');
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -91,7 +108,7 @@ const AddActivity: React.FC = () => {
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="col-span-2">
+                        <div className="col-span-2 md:col-span-1">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Activity Name</label>
                             <input
                                 type="text"
@@ -101,6 +118,18 @@ const AddActivity: React.FC = () => {
                                 placeholder="e.g., Morning Yoga Session"
                                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
                                 required
+                            />
+                        </div>
+
+                        <div className="col-span-2 md:col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                            <input
+                                type="text"
+                                name="category"
+                                value={formData.category}
+                                onChange={handleChange}
+                                placeholder="e.g., Water Activities, Adventure"
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
                             />
                         </div>
 
@@ -174,6 +203,27 @@ const AddActivity: React.FC = () => {
                                     >
                                         {slot}
                                     </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Activity Images</label>
+                            <input
+                                type="file"
+                                onChange={handleImageUpload}
+                                className="block w-full text-sm text-slate-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-purple-50 file:text-purple-700
+                                hover:file:bg-purple-100"
+                            />
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {formData.images.map((img, idx) => (
+                                    <div key={idx} className="relative h-24 w-24 rounded-md overflow-hidden border">
+                                        <img src={img} alt="Activity" className="h-full w-full object-cover" />
+                                    </div>
                                 ))}
                             </div>
                         </div>

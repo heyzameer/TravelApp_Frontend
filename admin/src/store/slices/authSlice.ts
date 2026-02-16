@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { AxiosError } from 'axios';
 import type { AuthState, User, LoginCredentials } from '../../types';
 import { authService } from '../../services/auth';
 
@@ -17,8 +18,11 @@ export const loginUser = createAsyncThunk(
     try {
       const user = await authService.login(credentials);
       return user;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Login failed');
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        return rejectWithValue(error.response?.data?.message || 'Login failed');
+      }
+      return rejectWithValue('Login failed');
     }
   }
 );
@@ -29,8 +33,11 @@ export const adminLogin = createAsyncThunk(
     try {
       const user = await authService.adminLoginService(credentials.email, credentials.password);
       return user;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Admin login failed');
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        return rejectWithValue(error.response?.data?.message || 'Admin login failed');
+      }
+      return rejectWithValue('Admin login failed');
     }
   }
 );
@@ -40,8 +47,11 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authService.logout();
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Logout failed');
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        return rejectWithValue(error.response?.data?.message || 'Logout failed');
+      }
+      return rejectWithValue('Logout failed');
     }
   }
 );
@@ -55,8 +65,11 @@ export const getCurrentUser = createAsyncThunk(
         return rejectWithValue('No user found');
       }
       return user;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to get current user');
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        return rejectWithValue(error.response?.data?.message || 'Failed to get current user');
+      }
+      return rejectWithValue('Failed to get current user');
     }
   }
 );
@@ -70,8 +83,11 @@ export const refreshToken = createAsyncThunk(
         return rejectWithValue('Token refresh failed');
       }
       return token;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Token refresh failed');
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        return rejectWithValue(error.response?.data?.message || 'Token refresh failed');
+      }
+      return rejectWithValue('Token refresh failed');
     }
   }
 );

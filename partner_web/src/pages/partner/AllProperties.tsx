@@ -40,9 +40,9 @@ const AllProperties: React.FC = () => {
     const getStatusBadge = (status: string, onboardingCompleted: boolean) => {
         if (!onboardingCompleted) {
             return (
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-2xl">
-                    <AlertCircle className="text-blue-600" size={18} />
-                    <span className="text-xs font-black text-blue-700 uppercase tracking-wider">Incomplete</span>
+                <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 border border-slate-200 rounded-full">
+                    <AlertCircle className="text-slate-600" size={14} />
+                    <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">Incomplete</span>
                 </div>
             );
         }
@@ -50,9 +50,9 @@ const AllProperties: React.FC = () => {
         switch (status) {
             case 'verified':
                 return (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-2xl">
-                        <CheckCircle2 className="text-green-600" size={18} />
-                        <span className="text-xs font-black text-green-700 uppercase tracking-wider">Verified</span>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full">
+                        <CheckCircle2 className="text-emerald-600" size={14} />
+                        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Verified</span>
                     </div>
                 );
             case 'pending':
@@ -104,10 +104,10 @@ const AllProperties: React.FC = () => {
 
     if (properties.length === 0) {
         return (
-            <div className="bg-white rounded-3xl p-12 text-center border border-gray-100">
-                <Building2 className="mx-auto text-gray-300" size={64} />
-                <h3 className="mt-6 text-xl font-black text-gray-900">No Properties Submitted</h3>
-                <p className="mt-2 text-gray-500 font-medium">
+            <div className="bg-white rounded-3xl p-12 text-center border border-slate-100">
+                <Building2 className="mx-auto text-slate-200" size={64} />
+                <h3 className="mt-6 text-xl font-bold text-slate-900">No Properties Submitted</h3>
+                <p className="mt-2 text-slate-500 font-medium">
                     Complete property onboarding to see your submissions here.
                 </p>
             </div>
@@ -116,9 +116,9 @@ const AllProperties: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">ALL PROPERTIES</h2>
-                <p className="text-gray-500 font-medium mt-1">View verification status and details</p>
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">All Properties</h2>
+                <p className="text-slate-500 font-medium mt-1">View verification status and details</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
@@ -131,22 +131,22 @@ const AllProperties: React.FC = () => {
                             <div className="flex items-start justify-between gap-6">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-4 mb-4">
-                                        <Building2 className="text-red-600" size={28} />
+                                        <Building2 className="text-slate-900" size={28} />
                                         <div>
-                                            <h3 className="text-xl font-black text-gray-900">{property.propertyName}</h3>
-                                            <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">
+                                            <h3 className="text-xl font-bold text-slate-900">{property.propertyName}</h3>
+                                            <p className="text-sm text-slate-400 font-medium tracking-tight">
                                                 {property.propertyType} • {property.address.city}, {property.address.state}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4 mt-4">
+                                    <div className="flex items-center gap-4 mt-6">
                                         {getStatusBadge(property.verificationStatus, property.onboardingCompleted)}
-                                        <span className="text-sm text-gray-500 font-bold">
+                                        <span className="text-sm text-slate-400 font-medium">
                                             ID: {property.propertyId || property._id.slice(-8).toUpperCase()}
                                         </span>
                                         {property.pricePerNight && (
-                                            <span className="text-sm text-gray-500 font-bold">
+                                            <span className="text-sm text-slate-900 font-bold">
                                                 ₹{property.pricePerNight}/night
                                             </span>
                                         )}
@@ -212,10 +212,10 @@ const AllProperties: React.FC = () => {
                                     )}
                                 </div>
 
-                                <div className="flex flex-col gap-3">
+                                <div className="flex flex-col gap-3 min-w-[180px]">
                                     <button
                                         onClick={() => navigate(`/partner/property/${property._id}`)}
-                                        className="px-6 py-3 bg-red-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                                        className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-colors flex items-center justify-center gap-2"
                                     >
                                         <Eye size={18} />
                                         View Details
@@ -223,7 +223,7 @@ const AllProperties: React.FC = () => {
                                     {(property.verificationStatus === 'rejected' || !property.onboardingCompleted) && (
                                         <button
                                             onClick={() => navigate('/partner/dashboard', { state: { editPropertyId: property._id } })}
-                                            className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                                            className="px-6 py-3 bg-white text-slate-600 border border-slate-200 rounded-2xl font-bold text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
                                         >
                                             <Edit2 size={18} />
                                             {property.onboardingCompleted ? 'Edit & Resubmit' : 'Continue Editing'}
@@ -386,11 +386,11 @@ const RejectionModal: React.FC<{ reason: string; onClose: () => void }> = ({ rea
                         <XCircle className="text-red-600" size={40} />
                     </div>
 
-                    <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight uppercase text-red-600">Disapproved</h2>
-                    <p className="text-gray-500 font-bold text-sm uppercase tracking-widest mb-10">Admin Feedback</p>
+                    <h2 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight">Verification Feedback</h2>
+                    <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-10 text-red-500">Unsatisfactory documents</p>
 
-                    <div className="w-full bg-gray-50 rounded-[2rem] p-8 border border-gray-100 text-left relative group">
-                        <p className="text-gray-700 font-bold leading-relaxed text-lg italic">
+                    <div className="w-full bg-slate-50 rounded-3xl p-8 border border-slate-100 text-left relative group">
+                        <p className="text-slate-700 font-medium leading-relaxed text-lg italic">
                             &quot;{displayText}&quot;
                         </p>
 
@@ -406,7 +406,7 @@ const RejectionModal: React.FC<{ reason: string; onClose: () => void }> = ({ rea
 
                     <button
                         onClick={onClose}
-                        className="mt-10 w-full py-5 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95"
+                        className="mt-10 w-full py-5 bg-slate-900 text-white rounded-3xl font-bold uppercase tracking-wider hover:bg-black transition-all shadow-xl active:scale-95"
                     >
                         I Understand
                     </button>

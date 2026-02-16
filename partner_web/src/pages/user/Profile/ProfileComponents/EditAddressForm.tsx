@@ -106,8 +106,8 @@ const EditAddressForm: React.FC = () => {
         const response = await userService.getAddress(addressId);
         console.log('Address fetch response:', response);
 
-        if (response.success && response.data?.address) {
-          const address = response.data.address;
+        if (response) {
+          const address = response; // Assuming response is now the Address object directly
 
           console.log('Setting form data with address:', address);
           setFormData({
@@ -327,11 +327,10 @@ const EditAddressForm: React.FC = () => {
                 <button
                   key={type}
                   type="button"
-                  className={`flex items-center px-4 py-3 rounded-lg border transition-all ${
-                    formData.type === type
-                      ? 'border-red-500 bg-red-50 text-red-600 shadow-sm'
-                      : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                  }`}
+                  className={`flex items-center px-4 py-3 rounded-lg border transition-all ${formData.type === type
+                    ? 'border-red-500 bg-red-50 text-red-600 shadow-sm'
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    }`}
                   onClick={() => handleTypeSelect(type as 'home' | 'work' | 'other')}
                 >
                   <Icon size={18} className="mr-2" />
@@ -372,9 +371,8 @@ const EditAddressForm: React.FC = () => {
                     name="contactName"
                     value={formData.contactName}
                     onChange={handleChange}
-                    className={`w-full pl-12 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
-                      errors.contactName ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-12 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${errors.contactName ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
                     placeholder="Enter contact person name"
                     required
                   />
@@ -408,9 +406,8 @@ const EditAddressForm: React.FC = () => {
                     name="contactPhone"
                     value={formData.contactPhone}
                     onChange={handleChange}
-                    className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
-                      errors.contactPhone ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                    }`}
+                    className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${errors.contactPhone ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
                     placeholder="Enter phone number"
                     maxLength={10}
                     required
@@ -445,9 +442,8 @@ const EditAddressForm: React.FC = () => {
                   onChange={handleChange}
                   type="text"
                   required
-                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
-                    errors.street ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
+                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${errors.street ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   placeholder="Enter complete address or click on map to auto-fill"
                 />
               </div>

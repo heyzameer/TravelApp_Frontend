@@ -34,7 +34,8 @@ export const createRoom = createAsyncThunk(
     async ({ propertyId, data, images }: { propertyId: string; data: Partial<Room>; images: ImageFile[] }, { rejectWithValue }) => {
         try {
             // 1. Create Room Details
-            const room = await roomService.createRoomDetails(propertyId, data);
+            const createdResponse = await roomService.createRoomDetails(propertyId, data);
+            const rooms = Array.isArray(createdResponse) ? createdResponse : [createdResponse];
 
             // 2. Upload Images if any
             if (images && images.length > 0) {
@@ -53,11 +54,18 @@ export const createRoom = createAsyncThunk(
 
                 if (metadata.length > 0) {
                     formData.append('imageMetadata', JSON.stringify(metadata));
-                    return await roomService.uploadRoomImages(room._id, formData);
+
+                    // Upload images for each created room
+                    const uploadPromises = rooms.map(room =>
+                        roomService.uploadRoomImages(room._id, formData)
+                    );
+
+                    const updatedRooms = await Promise.all(uploadPromises);
+                    return Array.isArray(createdResponse) ? updatedRooms : updatedRooms[0];
                 }
             }
 
-            return room;
+            return createdResponse;
         } catch (error: unknown) {
             console.error('Room creation error:', error);
             const err = error as {

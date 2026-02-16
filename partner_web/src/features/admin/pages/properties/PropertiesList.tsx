@@ -5,12 +5,32 @@ import { fetchAllProperties, togglePropertyStatus, deleteProperty } from '../../
 
 import { Search, Plus, Edit2, Trash2, Eye, MapPin, Home, Star, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import ConfirmModal from '../../../../components/common/ConfirmModal';
+import { type Property } from '../../../../types';
 
 const PropertiesList: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { properties, isLoading, error } = useAppSelector((state) => state.properties);
     const [searchTerm, setSearchTerm] = useState('');
+
+    const getImageUrl = (img: string | { url: string }) => {
+        if (!img) return '';
+        if (typeof img === 'string') return img;
+        return img.url;
+    };
+
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
 
     useEffect(() => {
         dispatch(fetchAllProperties());
@@ -23,20 +43,27 @@ const PropertiesList: React.FC = () => {
             // Slice togglePropertyStatus takes { propertyId, isActive }
             await dispatch(togglePropertyStatus({ propertyId: id, isActive: newStatus })).unwrap();
             toast.success(newStatus ? 'Property activated' : 'Property deactivated');
-        } catch (err) {
+        } catch {
             toast.error('Failed to update property status');
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this property?')) {
-            try {
-                await dispatch(deleteProperty(id)).unwrap();
-                toast.success('Property deleted successfully');
-            } catch (err) {
-                toast.error('Failed to delete property');
+    const handleDelete = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Property',
+            message: 'Are you sure you want to delete this property? This will remove all associated rooms, packages, and bookings.',
+            onConfirm: async () => {
+                try {
+                    await dispatch(deleteProperty(id)).unwrap();
+                    toast.success('Property deleted successfully');
+                } catch {
+                    toast.error('Failed to delete property');
+                } finally {
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }
             }
-        }
+        });
     };
 
     const handleViewProperty = (id: string) => {
@@ -47,13 +74,13 @@ const PropertiesList: React.FC = () => {
         navigate(`/admin/properties/${id}/edit`);
     };
 
-    const filteredProperties = properties.filter(property =>
-        property.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        property.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (property.owner?.fullName || "").toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredProperties = (properties as Property[]).filter((property) =>
+        property.propertyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        property.address?.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        property.address?.state?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const activeProperties = properties.filter(p => p.isActive || p.isAvailable).length;
+    const activeProperties = properties.filter((p) => p.isActive).length;
     const totalProperties = properties.length;
     // const averageRating = properties.reduce((acc, curr) => acc + (curr.rating || 0), 0) / totalProperties || 0;
 
@@ -200,48 +227,47 @@ const PropertiesList: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredProperties.map((property) => {
-                                const propertyId = property._id || property.id;
-                                const isActive = property.isActive || property.isAvailable || false;
+                            {(filteredProperties as Property[]).map((property) => {
+                                const propertyId = property._id;
+                                const isActive = property.isActive;
                                 return (
                                     <tr
                                         key={propertyId}
                                         className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all cursor-pointer"
-                                        onClick={() => handleViewProperty(propertyId!)}
+                                        onClick={() => handleViewProperty(propertyId)}
                                     >
                                         <td className="py-4 px-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
                                                     <img
-                                                        src={property.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200'}
-                                                        alt={property.name}
+                                                        src={getImageUrl(property.images?.[0]) || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200'}
+                                                        alt={property.propertyName}
                                                         className="w-full h-full object-cover"
                                                         onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200' }}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-gray-800">{property.name || 'Untitled Property'}</p>
+                                                    <p className="font-semibold text-gray-800">{property.propertyName || 'Untitled Property'}</p>
                                                     <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
                                                         <Star size={12} fill="currentColor" />
-                                                        <span>{property.rating || 0} ({property.reviewsCount || 0})</span>
+                                                        <span>{property.rating || 0}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="py-4 px-6">
                                             <div className="flex items-center gap-1 text-gray-600 text-sm">
-                                                <MapPin size={14} />
-                                                <span className="truncate max-w-[150px]">{property.address || property.location?.address || 'N/A'}</span>
+                                                <span className="truncate max-w-[150px]">{property.address?.city}, {property.address?.state}</span>
                                             </div>
                                         </td>
                                         <td className="py-4 px-6">
                                             <span className="text-gray-800 text-sm font-medium">
-                                                {property.owner?.fullName || property.ownerName || 'Unknown'}
+                                                Owner
                                             </span>
                                         </td>
                                         <td className="py-4 px-6">
                                             <span className="text-emerald-600 font-bold">
-                                                ₹{property.price || property.pricePerNight || 0}
+                                                -
                                             </span>
                                         </td>
                                         <td className="py-4 px-6">
@@ -252,7 +278,7 @@ const PropertiesList: React.FC = () => {
                                                 <input
                                                     type="checkbox"
                                                     checked={isActive}
-                                                    onChange={() => handleToggleStatus(propertyId!, isActive)}
+                                                    onChange={() => handleToggleStatus(propertyId, isActive)}
                                                     onClick={(e) => e.stopPropagation()}
                                                     className="sr-only peer"
                                                 />
@@ -266,7 +292,7 @@ const PropertiesList: React.FC = () => {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleViewProperty(propertyId!);
+                                                        handleViewProperty(propertyId);
                                                     }}
                                                     className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all hover:scale-110"
                                                     title="View Details"
@@ -276,7 +302,7 @@ const PropertiesList: React.FC = () => {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleEditProperty(propertyId!);
+                                                        handleEditProperty(propertyId);
                                                     }}
                                                     className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all hover:scale-110"
                                                     title="Edit"
@@ -286,7 +312,7 @@ const PropertiesList: React.FC = () => {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleDelete(propertyId!);
+                                                        handleDelete(propertyId);
                                                     }}
                                                     className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all hover:scale-110"
                                                     title="Delete"
@@ -308,6 +334,14 @@ const PropertiesList: React.FC = () => {
                     </div>
                 )}
             </div>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                variant="danger"
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };

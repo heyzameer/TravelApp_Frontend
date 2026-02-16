@@ -84,7 +84,7 @@ function PropertiesContent() {
     };
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
+        <div className="container mx-auto px-4 sm:px-6 max-w-7xl" suppressHydrationWarning>
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-4">
@@ -268,7 +268,7 @@ function PropertiesContent() {
 
 export default function PropertiesPage() {
     return (
-        <div className="pt-24 pb-12 bg-slate-50 min-h-screen">
+        <div className="pt-24 pb-12 bg-slate-50 min-h-screen" suppressHydrationWarning>
             <Suspense fallback={
                 <div className="flex items-center justify-center min-h-screen">
                     <Loader2 className="h-12 w-12 animate-spin text-emerald-500" />

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchAllProperties, togglePropertyStatus, deleteProperty } from '../../../../store/slices/propertiesSlice';
 
-import { Search, Plus, Edit2, Trash2, Eye, MapPin, Home, Star, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Search, Edit2, Trash2, Eye, MapPin, Home, Star, AlertCircle, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import ReusableTable from '../../../../components/shared/ReusableTable';
 import type { ColumnConfig } from '../../../../components/shared/ReusableTable';
@@ -30,7 +30,7 @@ const PropertiesList: React.FC = () => {
             // Slice togglePropertyStatus takes { propertyId, isActive }
             await dispatch(togglePropertyStatus({ propertyId: id, isActive: newStatus })).unwrap();
             toast.success(newStatus ? 'Property activated' : 'Property deactivated');
-        } catch (err) {
+        } catch {
             toast.error('Failed to update property status');
         }
     };
@@ -40,7 +40,7 @@ const PropertiesList: React.FC = () => {
             try {
                 await dispatch(deleteProperty(id)).unwrap();
                 toast.success('Property deleted successfully');
-            } catch (err) {
+            } catch {
                 toast.error('Failed to delete property');
             }
         }
@@ -83,7 +83,7 @@ const PropertiesList: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
                         <img
-                            src={property.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200'}
+                            src={property.images?.[0]?.url || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200'}
                             alt={property.propertyName}
                             className="w-full h-full object-cover"
                             onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=200' }}
@@ -116,7 +116,7 @@ const PropertiesList: React.FC = () => {
             key: 'owner',
             render: (property) => (
                 <span className="text-gray-800 text-sm font-medium">
-                    {property.partnerId?.fullName || 'Unknown'}
+                    {(property.partnerId as unknown as { fullName: string })?.fullName || property.partner?.fullName || 'Unknown'}
                 </span>
             )
         },

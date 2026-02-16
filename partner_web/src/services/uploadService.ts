@@ -1,4 +1,5 @@
 import type { ApiResponse, UploadProgress } from "../types";
+export type { UploadProgress };
 import api from "./api";
 
 export class UploadService {

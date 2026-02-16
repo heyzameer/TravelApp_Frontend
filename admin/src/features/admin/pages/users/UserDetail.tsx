@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Mail, Phone, Shield, ShieldCheck,
-    Calendar, User as UserIcon, Wallet, Star,
-    LogOut, Trash2, Edit2, CheckCircle, XCircle,
+    Calendar, User as UserIcon, Star,
+    Trash2, Edit2, CheckCircle, XCircle,
     Clock, Tag, CreditCard
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
@@ -33,8 +33,8 @@ const UserDetail: React.FC = () => {
                 userData: { isActive: !selectedUser.isActive }
             })).unwrap();
             toast.success(selectedUser.isActive ? 'User deactivated' : 'User activated');
-        } catch (err: any) {
-            toast.error(err || 'Failed to update status');
+        } catch (err: unknown) {
+            toast.error((typeof err === 'string' ? err : '') || 'Failed to update status');
         } finally {
             setIsActionLoading(false);
         }
@@ -48,8 +48,8 @@ const UserDetail: React.FC = () => {
                 await dispatch(deleteUser(id)).unwrap();
                 toast.success('User deleted successfully');
                 navigate('/admin/users');
-            } catch (err: any) {
-                toast.error(err || 'Failed to delete user');
+            } catch (err: unknown) {
+                toast.error((typeof err === 'string' ? err : '') || 'Failed to delete user');
             } finally {
                 setIsActionLoading(false);
             }
@@ -96,6 +96,7 @@ const UserDetail: React.FC = () => {
         loyaltyPoints,
         bookings = [],
         totalBookings = 0
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } = selectedUser as any; // Using any for extended fields from backend
 
     return (
@@ -157,8 +158,8 @@ const UserDetail: React.FC = () => {
                             onClick={handleToggleStatus}
                             disabled={isActionLoading}
                             className={`px-6 py-2.5 rounded-xl font-bold transition-all shadow-sm border ${isActive
-                                    ? 'bg-white text-orange-600 border-orange-100 hover:bg-orange-50'
-                                    : 'bg-white text-green-600 border-green-100 hover:bg-green-50'
+                                ? 'bg-white text-orange-600 border-orange-100 hover:bg-orange-50'
+                                : 'bg-white text-green-600 border-green-100 hover:bg-green-50'
                                 }`}
                         >
                             {isActive ? 'Deactivate Account' : 'Activate Account'}
@@ -223,6 +224,7 @@ const UserDetail: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
+                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                     {bookings.length > 0 ? bookings.map((booking: any) => (
                                         <tr key={booking._id} className="hover:bg-gray-50 transition-colors">
                                             <td className="py-4 px-8">

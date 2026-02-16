@@ -5,7 +5,7 @@ import { authService } from './auth';
 
 interface FailedRequest {
   resolve: (token: string | null) => void;
-  reject: (error: any) => void;
+  reject: (error: unknown) => void;
 }
 
 const api = axios.create({
@@ -35,7 +35,7 @@ api.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue: FailedRequest[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -104,11 +104,11 @@ api.interceptors.response.use(
           // Refresh returned null (failed)
           throw new Error("Refresh failed");
         }
-      } catch (refreshError: any) {
+      } catch (refreshError: unknown) {
         isRefreshing = false;
 
-        // Check if the refresh error itself was deactivation (just in case)
-        const refreshErrorMessage = (refreshError.response?.data as { message?: string })?.message || "";
+        const refreshErrorResponse = (refreshError as AxiosError)?.response;
+        const refreshErrorMessage = (refreshErrorResponse?.data as { message?: string })?.message || "";
 
         if (refreshErrorMessage.toLowerCase().includes("deactivated")) {
           toast.error("Your account has been deactivated. Please contact support.");

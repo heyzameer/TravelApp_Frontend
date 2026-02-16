@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { partnerAuthService } from "../../services/partnerAuth";
@@ -65,11 +65,7 @@ const PropertyDetails: React.FC = () => {
     const [showEditWarning, setShowEditWarning] = useState(false);
     const [showRejectionPopup, setShowRejectionPopup] = useState(false);
 
-    useEffect(() => {
-        fetchPropertyDetails();
-    }, [id]);
-
-    const fetchPropertyDetails = async () => {
+    const fetchPropertyDetails = useCallback(async () => {
         try {
             setLoading(true);
             const properties = await partnerAuthService.getPartnerProperties();
@@ -86,7 +82,11 @@ const PropertyDetails: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, navigate]);
+
+    useEffect(() => {
+        fetchPropertyDetails();
+    }, [fetchPropertyDetails]);
 
     const handleEdit = () => {
         if (property?.verificationStatus === 'verified') {
@@ -269,7 +269,7 @@ const PropertyDetails: React.FC = () => {
                                 {property.images.map((img, idx) => (
                                     <img
                                         key={idx}
-                                        src={img}
+                                        src={typeof img === 'string' ? img : img.url}
                                         alt={`Gallery ${idx + 1}`}
                                         className="aspect-square object-cover rounded-2xl border border-gray-100"
                                     />

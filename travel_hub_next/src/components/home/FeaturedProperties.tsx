@@ -34,8 +34,8 @@ export const FeaturedProperties = () => {
 
     if (loading) {
         return (
-            <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto bg-gray-50/50">
-                <div className="flex items-center justify-center py-20">
+            <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto bg-gray-50/50" suppressHydrationWarning>
+                <div className="flex items-center justify-center py-20" suppressHydrationWarning>
                     <Loader2 className="h-12 w-12 animate-spin text-emerald-500" />
                 </div>
             </section>
@@ -43,7 +43,7 @@ export const FeaturedProperties = () => {
     }
 
     return (
-        <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto bg-gray-50/50">
+        <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto bg-gray-50/50" suppressHydrationWarning>
             <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-2">Featured Stays</h2>
                 <p className="text-gray-500 font-medium">Handpicked properties for your next adventure</p>
@@ -56,18 +56,21 @@ export const FeaturedProperties = () => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" suppressHydrationWarning>
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {properties.map((prop: any) => (
                             <Link href={`/properties/${prop._id}`} key={prop._id} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100">
                                 <div className="relative aspect-[4/3] overflow-hidden">
                                     <Image
-                                        src={prop.coverImage || 'https://images.unsplash.com/photo-1566073771259-6a8506099945'}
+                                        src={prop.coverImage && prop.coverImage.length > 5 ? prop.coverImage : 'https://images.unsplash.com/photo-1566073771259-6a8506099945'}
                                         alt={prop.propertyName}
                                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                                         fill
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        suppressHydrationWarning
+                                        unoptimized
                                     />
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black text-gray-900 flex items-center gap-1 shadow-sm">
+                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black text-gray-900 flex items-center gap-1 shadow-sm" suppressHydrationWarning>
                                         <Star size={12} className="text-yellow-500 fill-yellow-500" /> {prop.averageRating || prop.rating || 'New'}
                                     </div>
                                 </div>

@@ -4,12 +4,26 @@ import { Search, Trash2, Users, TrendingUp, DollarSign, AlertCircle } from 'luci
 import { toast } from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchAllUsers, updateUser, deleteUser } from '../../../../store/slices/usersSlice';
+import ConfirmModal from '../../../../components/common/ConfirmModal';
+import { type User } from '../../../../types';
 
 const UsersList: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { users, isLoading, error } = useAppSelector((state) => state.users);
     const [searchTerm, setSearchTerm] = useState('');
+
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
 
     useEffect(() => {
         dispatch(fetchAllUsers({ page: 1, limit: 100, role: 'customer' }));
@@ -20,36 +34,43 @@ const UsersList: React.FC = () => {
         try {
             await dispatch(updateUser({ userId: id, userData: { isActive: newStatus } })).unwrap();
             toast.success(newStatus ? 'User activated' : 'User deactivated');
-        } catch (err) {
+        } catch {
             toast.error('Failed to update user status');
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this user?')) {
-            try {
-                await dispatch(deleteUser(id)).unwrap();
-                toast.success('User deleted successfully');
-            } catch (err) {
-                toast.error('Failed to delete user');
+    const handleDelete = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete User',
+            message: 'Are you sure you want to delete this user? This action cannot be undone and will permanently remove the user account.',
+            onConfirm: async () => {
+                try {
+                    await dispatch(deleteUser(id)).unwrap();
+                    toast.success('User deleted successfully');
+                } catch {
+                    toast.error('Failed to delete user');
+                } finally {
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }
             }
-        }
+        });
     };
 
     const handleViewUser = (id: string) => {
         navigate(`/admin/users/${id}`);
     };
 
-    const filteredUsers = users.filter(user =>
+    const filteredUsers = (users as User[]).filter((user) =>
         user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.phone?.includes(searchTerm) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     console.log("users", users);
-    const totalBookings = users.reduce((sum, user) => sum + (user.totalBookings || 0), 0);
-    const totalRevenue = users.reduce((sum, user) => sum + (user.totalAmount || 0), 0);
-    const activeUsers = users.filter(u => u.isActive).length;
+    const totalBookings = users.reduce((sum: number, user) => sum + (user.totalOrders || 0), 0);
+    const totalRevenue = users.reduce((sum: number, user) => sum + (user.totalAmount || 0), 0);
+    const activeUsers = users.filter((u) => u.isActive).length;
 
     const SkeletonCard = () => (
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 animate-pulse">
@@ -254,7 +275,7 @@ const UsersList: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredUsers.map((user, index) => (
+                            {(filteredUsers as User[]).map((user, index) => (
                                 <tr
                                     key={user.id}
                                     className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all cursor-pointer"
@@ -289,7 +310,7 @@ const UsersList: React.FC = () => {
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
-                                            {user.totalBookings || 0}
+                                            {user.totalOrders || 0}
                                         </span>
                                     </td>
                                     <td className="py-4 px-6">
@@ -338,6 +359,14 @@ const UsersList: React.FC = () => {
                     </div>
                 )}
             </div>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                variant="danger"
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };

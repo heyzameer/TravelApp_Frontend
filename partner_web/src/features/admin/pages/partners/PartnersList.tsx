@@ -4,12 +4,26 @@ import { Search, Edit2, Eye, Trash2, UserCheck, TrendingUp, DollarSign, AlertCir
 import { toast } from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchAllPartners, updatePartner, deletePartner } from '../../../../store/slices/partnersSlice';
+import ConfirmModal from '../../../../components/common/ConfirmModal';
+import { type PartnerUser } from '../../../../types';
 
 const PartnersList: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { partners, isLoading, error } = useAppSelector((state) => state.partners);
     const [searchTerm, setSearchTerm] = useState('');
+
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
 
     useEffect(() => {
         dispatch(fetchAllPartners());
@@ -20,27 +34,34 @@ const PartnersList: React.FC = () => {
         try {
             await dispatch(updatePartner({ partnerId: id, partnerData: { isActive: newStatus } })).unwrap();
             toast.success(newStatus ? 'Partner activated' : 'Partner deactivated');
-        } catch (err) {
+        } catch {
             toast.error('Failed to update partner status');
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this partner?')) {
-            try {
-                await dispatch(deletePartner(id)).unwrap();
-                toast.success('Partner deleted successfully');
-            } catch (err) {
-                toast.error('Failed to delete partner');
+    const handleDelete = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Partner',
+            message: 'Are you sure you want to delete this partner? This will permanently remove their access and all associated property data.',
+            onConfirm: async () => {
+                try {
+                    await dispatch(deletePartner(id)).unwrap();
+                    toast.success('Partner deleted successfully');
+                } catch {
+                    toast.error('Failed to delete partner');
+                } finally {
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }
             }
-        }
+        });
     };
 
     const handleViewPartner = (id: string) => {
         navigate(`/admin/partners/${id}`);
     };
 
-    const filteredPartners = partners.filter(partner =>
+    const filteredPartners = (partners as PartnerUser[]).filter((partner) =>
         partner.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         partner.phone?.includes(searchTerm) ||
         partner.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -49,8 +70,8 @@ const PartnersList: React.FC = () => {
     console.log('Filtered Partners:', filteredPartners);
     console.log('Partner:', partners);
 
-    const totalRevenue = partners.reduce((sum, partner) => sum + (partner.totalAmount || 0), 0);
-    const activePartners = partners.filter(p => p.isActive).length;
+    const totalRevenue = partners.reduce((sum: number, partner) => sum + (partner.totalAmount || 0), 0);
+    const activePartners = partners.filter((p) => p.isActive).length;
 
     const SkeletonCard = () => (
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 animate-pulse">
@@ -206,7 +227,7 @@ const PartnersList: React.FC = () => {
                         <div>
                             <p className="text-gray-600 text-sm font-medium mb-1">Available Points</p>
                             <p className="text-3xl font-bold text-gray-800">
-                                {partners.reduce((sum, p) => sum + (p.availablePoints || 0), 0)}
+                                {partners.reduce((sum: number, p) => sum + (p.availablePoints || 0), 0)}
                             </p>
                             <p className="text-emerald-600 text-sm mt-1 font-semibold">Total Distributed</p>
                         </div>
@@ -257,7 +278,7 @@ const PartnersList: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredPartners.map((partner, index) => {
+                            {(filteredPartners as PartnerUser[]).map((partner, index) => {
                                 const partnerId = partner._id || partner.id || partner.partnerId;
                                 return (
                                     <tr
@@ -364,6 +385,14 @@ const PartnersList: React.FC = () => {
                     </div>
                 )}
             </div>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                variant="danger"
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };

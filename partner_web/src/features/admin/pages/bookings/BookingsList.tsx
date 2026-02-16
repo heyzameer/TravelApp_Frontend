@@ -4,13 +4,33 @@ import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchAllBookings, deleteBooking } from '../../../../store/slices/bookingsSlice';
 import { Search, Eye, Trash2, Calendar, CheckCircle, Clock, XCircle, AlertCircle, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import ConfirmModal from '../../../../components/common/ConfirmModal';
+import { type Booking } from '../../../../types';
 
 const BookingsList: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { bookings, isLoading, error } = useAppSelector((state) => state.bookings);
+    // Explicitly type booking for the filter and search logic
+    interface ExtendedBooking extends Booking {
+        propertyName?: string;
+        driverName?: string;
+        totalAmount?: number;
+    }
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
+
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
 
     useEffect(() => {
         dispatch(fetchAllBookings());
@@ -23,15 +43,22 @@ const BookingsList: React.FC = () => {
         navigate(`/admin/bookings/${id}`);
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this booking?')) {
-            try {
-                await dispatch(deleteBooking(id)).unwrap();
-                toast.success('Booking deleted successfully');
-            } catch (err) {
-                toast.error('Failed to delete booking');
+    const handleDelete = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Booking',
+            message: 'Are you sure you want to delete this booking? This action is permanent and should only be used for data cleanup.',
+            onConfirm: async () => {
+                try {
+                    await dispatch(deleteBooking(id)).unwrap();
+                    toast.success('Booking deleted successfully');
+                } catch {
+                    toast.error('Failed to delete booking');
+                } finally {
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }
             }
-        }
+        });
     };
 
     const getStatusColor = (status: string) => {
@@ -54,18 +81,21 @@ const BookingsList: React.FC = () => {
         }
     };
 
-    const filteredBookings = bookings.filter(booking => {
+    const filteredBookings = (bookings as ExtendedBooking[]).filter(booking => {
         const matchesSearch =
-            booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (booking._id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (booking.propertyName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (booking.driverName || '').toLowerCase().includes(searchTerm.toLowerCase()); // Searching driverName as User Name might be mapped there or create guestName field
+            (booking.driverName || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesStatus = statusFilter === 'all' || booking.status.toLowerCase() === statusFilter.toLowerCase();
+        const matchesStatus = statusFilter === 'all' ||
+            (statusFilter === 'pending'
+                ? (booking.status === 'pending_payment' || (booking.status as string) === 'pending')
+                : booking.status === statusFilter.toLowerCase());
 
         return matchesSearch && matchesStatus;
     });
 
-    const pendingCount = bookings.filter(b => b.status === 'pending').length;
+    const pendingCount = bookings.filter((b) => b.status === 'pending_payment' || (b.status as string) === 'pending').length;
     const confirmedCount = bookings.filter(b => b.status === 'confirmed').length;
     const completedCount = bookings.filter(b => b.status === 'completed').length;
 
@@ -202,12 +232,12 @@ const BookingsList: React.FC = () => {
                         <tbody className="divide-y divide-gray-100">
                             {filteredBookings.map((booking) => (
                                 <tr
-                                    key={booking.id}
+                                    key={booking._id}
                                     className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all cursor-pointer"
-                                    onClick={() => handleViewBooking(booking.id)}
+                                    onClick={() => handleViewBooking(booking._id)}
                                 >
                                     <td className="py-4 px-6">
-                                        <span className="font-mono text-sm text-gray-600">#{booking.id.slice(-6).toUpperCase()}</span>
+                                        <span className="font-mono text-sm text-gray-600">#{booking._id?.slice(-6).toUpperCase()}</span>
                                     </td>
                                     <td className="py-4 px-6">
                                         <p className="font-semibold text-gray-800">{booking.propertyName || 'N/A'}</p>
@@ -235,7 +265,7 @@ const BookingsList: React.FC = () => {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleViewBooking(booking.id);
+                                                    handleViewBooking(booking._id);
                                                 }}
                                                 className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all hover:scale-110"
                                                 title="View Details"
@@ -245,10 +275,10 @@ const BookingsList: React.FC = () => {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleDelete(booking.id);
+                                                    handleDelete(booking._id);
                                                 }}
-                                                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all hover:scale-110"
-                                                title="Delete"
+                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Delete Booking"
                                             >
                                                 <Trash2 size={18} />
                                             </button>
@@ -265,6 +295,14 @@ const BookingsList: React.FC = () => {
                     )}
                 </div>
             </div>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                variant="danger"
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };

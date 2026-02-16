@@ -4,6 +4,8 @@ import { consumerApi, IDestination } from '@/services/consumerApi';
 import { MapPin } from 'lucide-react';
 import Image from 'next/image';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
     title: 'All Destinations | TravelHub',
     description: 'Explore all our handpicked destinations for your next nature getaway.',
@@ -18,7 +20,7 @@ export default async function AllDestinationsPage() {
     }
 
     return (
-        <main className="min-h-screen bg-gray-50 py-20 px-4 md:px-8">
+        <main className="min-h-screen bg-gray-50 py-20 px-4 md:px-8" suppressHydrationWarning>
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">Explore All Destinations</h1>
@@ -31,10 +33,12 @@ export default async function AllDestinationsPage() {
                             <div className="relative aspect-[4/3] overflow-hidden">
                                 {dest.coverImage ? (
                                     <Image
-                                        src={dest.coverImage}
+                                        src={dest.coverImage && dest.coverImage.length > 5 ? dest.coverImage : 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6'}
                                         alt={dest.name}
                                         className="object-cover transition-transform duration-700 group-hover:scale-110"
                                         fill
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        suppressHydrationWarning
                                     />
                                 ) : (
                                     <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 font-bold">No Image</div>

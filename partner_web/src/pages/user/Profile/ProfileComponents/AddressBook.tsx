@@ -27,8 +27,8 @@ const AddressBook: React.FC = () => {
         const response = await userService.getAddresses();
         console.log("response", response);
 
-        if (response.success && response.data) {
-          setAddresses(response.data.addresses);
+        if (response) {
+          setAddresses(response);
         }
       } catch (error) {
         console.error('Error fetching addresses:', error);
@@ -58,14 +58,10 @@ const AddressBook: React.FC = () => {
       )
 
       if (!confirmed) return;
-      const response = await userService.deleteAddress(addressId);
-      console.log("delete response", response);
-
-      if (response.success && response.data) {
-        toast.success('Address deleted successfully');
-        // Remove the deleted address from state
-        setAddresses(addresses.filter(address => address._id !== addressId));
-      }
+      await userService.deleteAddress(addressId);
+      toast.success('Address deleted successfully');
+      // Remove the deleted address from state
+      setAddresses(addresses.filter(address => address._id !== addressId));
     } catch (error) {
       console.error('Error deleting address:', error);
       toast.error('Failed to delete address');
@@ -76,7 +72,7 @@ const AddressBook: React.FC = () => {
     if (!addressId) return;
     try {
       const response = await userService.setDefaultAddress(addressId);
-      if (response.success) {
+      if (response) {
         toast.success('Default address updated');
         // Update the addresses state to reflect the new default
         setAddresses(addresses.map(address => ({
@@ -116,8 +112,8 @@ const AddressBook: React.FC = () => {
               <div key={address._id} className="border border-gray-200 rounded-lg p-4 relative">
                 <div className="flex items-center mb-2">
                   <div className={`p-2 rounded-full ${address.type === 'home' ? 'bg-blue-100 text-blue-500' :
-                      address.type === 'work' ? 'bg-purple-100 text-purple-500' :
-                        'bg-green-100 text-green-500'
+                    address.type === 'work' ? 'bg-purple-100 text-purple-500' :
+                      'bg-green-100 text-green-500'
                     }`}>
                     {address.type === 'home' ? <Home size={16} /> :
                       address.type === 'work' ? <Briefcase size={16} /> :

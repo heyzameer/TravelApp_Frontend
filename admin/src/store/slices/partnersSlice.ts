@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PartnerUser } from '../../types';
 import { adminService } from '../../services/admin';
+import { AxiosError } from 'axios';
 
 interface PartnersState {
     partners: PartnerUser[];
@@ -40,8 +41,11 @@ export const fetchAllPartners = createAsyncThunk(
             console.log('Fetch All Partners Response:', response);
             // The response structure seems to be { success: true, data: { partners: { data: [], total: X, page: Y, totalPages: Z } } }
             return response.data.partners;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch partners');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch partners');
+            }
+            return rejectWithValue('Failed to fetch partners');
         }
     }
 );
@@ -55,8 +59,11 @@ export const fetchPartnerRequests = createAsyncThunk(
             // Access response.data.partners.data if paginated, or response.data.partners if array
             const partnersData = response.data?.partners?.data || response.data?.partners || [];
             return partnersData;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner requests');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner requests');
+            }
+            return rejectWithValue('Failed to fetch partner requests');
         }
     }
 );
@@ -67,8 +74,11 @@ export const fetchPartnerById = createAsyncThunk(
         try {
             const response = await adminService.getPartnerById(partnerId);
             return response.partner;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner');
+            }
+            return rejectWithValue('Failed to fetch partner');
         }
     }
 );
@@ -81,8 +91,11 @@ export const fetchPartnerVerificationDetails = createAsyncThunk(
             // response is { success: true, data: { partner: ... } }
             // We want to return the partner object directly
             return response.data?.partner || response.partner || response;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner verification details');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner verification details');
+            }
+            return rejectWithValue('Failed to fetch partner verification details');
         }
     }
 );
@@ -90,14 +103,17 @@ export const fetchPartnerVerificationDetails = createAsyncThunk(
 export const updatePartner = createAsyncThunk(
     'partners/update',
     async (
-        { partnerId, partnerData }: { partnerId: string; partnerData: any },
+        { partnerId, partnerData }: { partnerId: string; partnerData: Partial<PartnerUser> },
         { rejectWithValue }
     ) => {
         try {
             const response = await adminService.updatePartner(partnerId, partnerData);
             return response.data?.partner || response.partner || response;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update partner');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to update partner');
+            }
+            return rejectWithValue('Failed to update partner');
         }
     }
 );
@@ -111,8 +127,11 @@ export const approvePartner = createAsyncThunk(
                 isVerified: true,
             });
             return response.partner;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to approve partner');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to approve partner');
+            }
+            return rejectWithValue('Failed to approve partner');
         }
     }
 );
@@ -126,8 +145,11 @@ export const rejectPartner = createAsyncThunk(
                 isVerified: false,
             });
             return response.partner;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to reject partner');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to reject partner');
+            }
+            return rejectWithValue('Failed to reject partner');
         }
     }
 );
@@ -138,8 +160,11 @@ export const deletePartner = createAsyncThunk(
         try {
             await adminService.deletePartner(partnerId);
             return partnerId;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to delete partner');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to delete partner');
+            }
+            return rejectWithValue('Failed to delete partner');
         }
     }
 );
@@ -150,8 +175,11 @@ export const verifyPartnerAadhaar = createAsyncThunk(
         try {
             const response = await adminService.verifyPartnerAadhaar(partnerId, action, reason);
             return response.data?.partner || response.partner || response;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to verify partner aadhaar');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to verify partner aadhaar');
+            }
+            return rejectWithValue('Failed to verify partner aadhaar');
         }
     }
 );
@@ -162,8 +190,11 @@ export const sendPartnerEmail = createAsyncThunk(
         try {
             const response = await adminService.sendPartnerEmail(emailData);
             return response;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to send email');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to send email');
+            }
+            return rejectWithValue('Failed to send email');
         }
     }
 );
