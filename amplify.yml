@@ -1,0 +1,53 @@
+version: 1
+applications:
+  - appRoot: travel_hub_next
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+          - .next/cache/**/*
+
+  - appRoot: partner_web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+
+  - appRoot: admin
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
