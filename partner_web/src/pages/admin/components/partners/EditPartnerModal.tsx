@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import type { Partner } from '../../../../types';
 
 interface EditPartnerModalProps {
   partner: Partner;
@@ -28,7 +29,7 @@ const EditPartnerModal: React.FC<EditPartnerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md relative">
         <button
           onClick={onClose}
@@ -36,9 +37,9 @@ const EditPartnerModal: React.FC<EditPartnerModalProps> = ({
         >
           <X size={24} />
         </button>
-        
+
         <h2 className="text-xl font-semibold mb-4">Edit Partner</h2>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
@@ -53,7 +54,7 @@ const EditPartnerModal: React.FC<EditPartnerModalProps> = ({
                 required
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -66,7 +67,7 @@ const EditPartnerModal: React.FC<EditPartnerModalProps> = ({
                 required
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Phone
@@ -79,7 +80,7 @@ const EditPartnerModal: React.FC<EditPartnerModalProps> = ({
                 required
               />
             </div>
-            
+
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 type="button"

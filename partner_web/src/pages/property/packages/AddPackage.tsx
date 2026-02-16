@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { AppDispatch, RootState } from '../../../store';
 import { createPackage } from '../../../features/packages/packageSlice';
+import { packageService } from '../../../services/packageService';
 import { fetchMealPlans } from '../../../features/mealPlans/mealPlanSlice';
 import { fetchActivities } from '../../../features/activities/activitySlice';
 import { ArrowLeft, Save, Loader2, Package as PackageIcon, Plus, Trash2 } from 'lucide-react';
@@ -40,7 +41,22 @@ const AddPackage: React.FC = () => {
 
     // Temp state for adding activity
     const [selectedActivity, setSelectedActivity] = useState('');
-    const [activitySessions, setActivitySessions] = useState(1);
+
+    const [images, setImages] = useState<string[]>([]);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const url = await packageService.uploadImage(file);
+            setImages(prev => [...prev, url]);
+            toast.success('Image uploaded');
+        } catch (error) {
+            console.error('Failed to upload image', error);
+            toast.error('Failed to upload image');
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -64,10 +80,9 @@ const AddPackage: React.FC = () => {
         }
         setFormData(prev => ({
             ...prev,
-            includedActivities: [...prev.includedActivities, { activityId: selectedActivity, sessionsIncluded: activitySessions }]
+            includedActivities: [...prev.includedActivities, { activityId: selectedActivity, sessionsIncluded: 1 }]
         }));
         setSelectedActivity('');
-        setActivitySessions(1);
     };
 
     const removeActivity = (activityId: string) => {
@@ -92,7 +107,8 @@ const AddPackage: React.FC = () => {
                     minPersons: Number(formData.minPersons),
                     maxPersons: Number(formData.maxPersons),
                     roomTypes: formData.roomTypes.length ? formData.roomTypes : ['Standard'], // Default if empty
-                    mealPlanId: formData.mealPlanId || undefined
+                    mealPlanId: formData.mealPlanId || undefined,
+                    images: images
                 }
             })).unwrap();
 
@@ -273,14 +289,6 @@ const AddPackage: React.FC = () => {
                                                 <option key={act._id} value={act._id}>{act.name} (₹{act.pricePerPerson})</option>
                                             ))}
                                         </select>
-                                        <input
-                                            type="number"
-                                            value={activitySessions}
-                                            onChange={(e) => setActivitySessions(Number(e.target.value))}
-                                            className="w-20 px-2 py-2 border border-gray-200 rounded-lg"
-                                            min="1"
-                                            placeholder="Sessions"
-                                        />
                                         <button
                                             type="button"
                                             onClick={addActivityToPackage}
@@ -296,7 +304,7 @@ const AddPackage: React.FC = () => {
                                             const act = activities.find(a => a._id === item.activityId);
                                             return (
                                                 <div key={idx} className="flex justify-between items-center bg-purple-50 px-3 py-2 rounded-lg text-sm text-purple-700 border border-purple-100">
-                                                    <span>{act?.name} x {item.sessionsIncluded}</span>
+                                                    <span>{act?.name}</span>
                                                     <button type="button" onClick={() => removeActivity(item.activityId)} className="text-red-500 hover:text-red-700">
                                                         <Trash2 size={16} />
                                                     </button>
@@ -305,6 +313,27 @@ const AddPackage: React.FC = () => {
                                         })}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Package Images</label>
+                            <input
+                                type="file"
+                                onChange={handleImageUpload}
+                                className="block w-full text-sm text-slate-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-green-50 file:text-green-700
+                                hover:file:bg-green-100"
+                            />
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {images.map((img, idx) => (
+                                    <div key={idx} className="relative h-24 w-24 rounded-md overflow-hidden border">
+                                        <img src={img} alt="Package" className="h-full w-full object-cover" />
+                                    </div>
+                                ))}
                             </div>
                         </div>
 

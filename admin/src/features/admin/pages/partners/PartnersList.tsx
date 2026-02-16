@@ -81,7 +81,7 @@ const PartnersList: React.FC = () => {
             try {
                 await dispatch(deletePartner(id)).unwrap();
                 toast.success('Partner deleted successfully');
-            } catch (err) {
+            } catch {
                 toast.error('Failed to delete partner');
             }
         }
@@ -366,7 +366,7 @@ const PartnersList: React.FC = () => {
                             {/* Status Filter */}
                             <select
                                 value={aadharStatusFilter}
-                                onChange={(e) => dispatch(setAadharStatusFilter(e.target.value as any))}
+                                onChange={(e) => dispatch(setAadharStatusFilter(e.target.value as 'all' | 'manual_review' | 'approved' | 'rejected'))}
                                 className="px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-medium cursor-pointer hover:border-blue-400 transition-colors"
                             >
                                 <option value="all">All Verification Status</option>

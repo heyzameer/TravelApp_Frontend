@@ -353,12 +353,16 @@ export interface Property {
     bankingStatus: 'pending' | 'approved' | 'rejected' | 'incomplete';
     rejectionReason?: string;
   };
-  images: string[];
+  images: {
+    url: string;
+    category: string;
+    label?: string;
+  }[];
   coverImage?: string;
-  pricePerNight: number;
-  maxGuests: number;
-  totalRooms: number;
-  availableRooms: number;
+  pricePerNight?: number;
+  maxGuests?: number;
+  totalRooms?: number;
+  availableRooms?: number;
   isActive: boolean;
   isVerified: boolean;
   verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
@@ -374,21 +378,48 @@ export interface Property {
 }
 
 export interface Booking {
+  _id: string;
   id: string;
+  bookingId: string;
   createdAt: string;
-  propertyId?: string;
+  propertyId?: {
+    _id: string;
+    propertyName: string;
+    coverImage: string;
+    location: {
+      address: string;
+    };
+  };
+  userId?: {
+    _id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+  };
   propertyName?: string;
   checkInDate?: string;
   checkOutDate?: string;
   numberOfGuests?: number;
+  guestDetails?: {
+    name: string;
+    age: number;
+    gender: string;
+  }[];
+  finalPrice: number;
+  status: string;
+  bookingType?: string;
+  paymentStatus?: string;
+  paymentId?: string;
+  paymentMethod?: string;
+  partnerApprovalStatus?: string;
+  refundStatus?: string;
+  bookedAt?: string;
   // Legacy fields for backward compatibility
   pickupAddress?: Address;
   dropoffAddress?: Address;
-  totalAmount: number;
-  status: string;
+  totalAmount?: number;
   estimatedTime?: string;
   distance?: number;
-  paymentMethod?: string;
   vehicleName?: string;
   driverId?: string;
   driverName?: string;

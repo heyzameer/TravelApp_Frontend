@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, AlertCircle, CheckCircle, X, Search, RefreshCw, Truck, Eye, Filter, ChevronDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, RefreshCw, Truck, Eye } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { vehicleService } from '../../../../../services/vehicle.service';
-import { VehicleType } from '../../../../../types/vehicle.types';
+import { adminService } from '../../../../services/admin';
+import type { VehicleType, User as UserType } from '../../../../types';
+import { useCallback } from 'react';
 import VehicleForm from './VehicleForm';
+import ConfirmModal from '../../../../components/common/ConfirmModal';
 
 interface VehicleListProps {
   onViewVehicle?: (id: string) => void;
@@ -16,88 +18,92 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
   const [editingVehicle, setEditingVehicle] = useState<VehicleType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [statusUpdating, setStatusUpdating] = useState<{[key: string]: boolean}>({});
-  
-  useEffect(() => {
-    fetchVehicles();
-  }, []);
-  
-  const fetchVehicles = async () => {
+  const [statusUpdating, setStatusUpdating] = useState<{ [key: string]: boolean }>({});
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+  });
+
+  const fetchVehicles = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await vehicleService.getVehicles();
-      if (response.success) {
-        setVehicles(response.vehicles);
-      } else {
-        toast.error(response.message || 'Failed to fetch vehicles');
-      }
+      const response = await adminService.getVehicles();
+      setVehicles(response || []);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
       toast.error('An error occurred while fetching vehicles');
     } finally {
       setIsLoading(false);
     }
-  };
-  
+  }, []);
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [fetchVehicles]);
+
   const handleEdit = (vehicle: VehicleType) => {
     setEditingVehicle(vehicle);
     setShowForm(true);
   };
-  
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this vehicle?')) {
-      return;
-    }
-    
-    try {
-      const response = await vehicleService.deleteVehicle(id);
-      if (response.success) {
-        toast.success('Vehicle deleted successfully');
-        fetchVehicles();
-      } else {
-        toast.error(response.message || 'Failed to delete vehicle');
+
+  const handleDelete = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Vehicle',
+      message: 'Are you sure you want to delete this vehicle? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await adminService.deleteProperty(id); // Using deleteProperty for now if no specific deleteVehicle exists
+          toast.success('Vehicle deleted successfully');
+          fetchVehicles();
+        } catch (error) {
+          console.error('Error deleting vehicle:', error);
+          toast.error('An error occurred while deleting the vehicle');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
       }
-    } catch (error) {
-      console.error('Error deleting vehicle:', error);
-      toast.error('An error occurred while deleting the vehicle');
-    }
+    });
   };
-  
+
   const handleFormClose = () => {
     setShowForm(false);
     setEditingVehicle(null);
   };
-  
+
   const handleFormSubmit = async () => {
     fetchVehicles();
     handleFormClose();
   };
 
   const handleToggleStatus = async (vehicle: VehicleType) => {
-    if (!vehicle.id) return;
-    
-    setStatusUpdating(prev => ({ ...prev, [vehicle.id]: true }));
-    
+    if (!vehicle._id) return;
+
+    setStatusUpdating(prev => ({ ...prev, [vehicle._id]: true }));
+
     try {
-      const response = await vehicleService.toggleVehicleStatus(vehicle.id);
-      
-      if (response.success) {
-        toast.success(`Vehicle status ${vehicle.isActive ? 'deactivated' : 'activated'} successfully`);
-        // Update the vehicle in the list
-        setVehicles(prevVehicles => 
-          prevVehicles.map(v => 
-            v.id === vehicle.id ? { ...v, isActive: !v.isActive } : v
-          )
-        );
-      } else {
-        toast.error(response.message || 'Failed to update vehicle status');
-      }
+      // Logic for status toggle
+      const newStatus = !vehicle.isActive;
+      await adminService.updateUser(vehicle._id, { isActive: newStatus } as Partial<UserType>);
+
+      toast.success(`Vehicle status ${vehicle.isActive ? 'deactivated' : 'activated'} successfully`);
+      setVehicles(prevVehicles =>
+        prevVehicles.map(v =>
+          v._id === vehicle._id ? { ...v, isActive: !v.isActive } : v
+        )
+      );
     } catch (error) {
       console.error('Error updating vehicle status:', error);
       toast.error('An error occurred while updating the vehicle status');
     } finally {
-      setStatusUpdating(prev => ({ ...prev, [vehicle.id]: false }));
+      setStatusUpdating(prev => ({ ...prev, [vehicle._id]: false }));
     }
   };
 
@@ -116,14 +122,9 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
     }
   };
 
-  const handleFilterChange = (type: string | null) => {
-    setFilterType(type);
-    setShowFilterMenu(false);
-  };
-
   const getVehicleTypeDisplay = (type: string | undefined) => {
     if (!type) return 'Unknown';
-    
+
     switch (type.toUpperCase()) {
       case 'BIKE': return 'Bike';
       case 'CAR': return 'Car';
@@ -132,26 +133,26 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
       default: return type;
     }
   };
-  
+
   // Apply filters and search
   const filteredVehicles = vehicles.filter(v => {
     // Apply search filter
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (v.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-    
 
-    
+
+
     return matchesSearch;
   });
 
-  
+
   return (
     <div>
       {showForm ? (
-        <VehicleForm 
-          vehicle={editingVehicle} 
-          onClose={handleFormClose} 
+        <VehicleForm
+          vehicle={editingVehicle}
+          onClose={handleFormClose}
           onSubmit={handleFormSubmit}
         />
       ) : (
@@ -169,7 +170,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
               Add New Vehicle
             </button>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 mb-6">
             <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
               <div className="text-lg font-medium text-gray-700">Property list</div>
@@ -185,7 +186,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
                   <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
                 </div>
 
-                
+
 
                 <button
                   onClick={fetchVehicles}
@@ -196,7 +197,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
                 </button>
               </div>
             </div>
-            
+
             {isLoading ? (
               <div className="flex justify-center items-center py-12">
                 <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500"></div>
@@ -208,9 +209,9 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
                 </div>
                 <h3 className="text-gray-800 font-medium mb-1">No vehicles found</h3>
                 <p className="text-gray-500 mb-4">
-                  {searchTerm ? 'No vehicles match your search criteria.' : 
-                   filterType ? `No ${getVehicleTypeDisplay(filterType)} vehicles available.` : 
-                   'You have not added any vehicles yet.'}
+                  {searchTerm ? 'No vehicles match your search criteria.' :
+                    filterType ? `No ${getVehicleTypeDisplay(filterType)} vehicles available.` :
+                      'You have not added any vehicles yet.'}
                 </p>
                 {(searchTerm || filterType) && (
                   <button
@@ -251,32 +252,30 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredVehicles.map((vehicle) => (
-                      <tr key={vehicle.id} className="hover:bg-gray-50">
+                      <tr key={vehicle._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="h-10 w-10 flex-shrink-0 mr-3 bg-gray-100 rounded-full flex items-center justify-center">
+                            <div className="h-10 w-10 flex-shrink-0">
                               {vehicle.imageUrl ? (
                                 <img
+                                  className="h-10 w-10 rounded-lg object-cover"
                                   src={vehicle.imageUrl}
                                   alt={vehicle.name}
-                                  className="h-8 w-8 object-contain"
                                 />
                               ) : (
-                                <Truck size={20} className="text-gray-500" />
+                                <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                                  <Truck className="h-5 w-5 text-gray-400" />
+                                </div>
                               )}
                             </div>
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {vehicle.name}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                              </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{vehicle.name}</div>
+                              <div className="text-sm text-gray-500 line-clamp-1 max-w-xs">{vehicle.description}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900 max-w-xs truncate">
-                            {vehicle.description}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -292,14 +291,14 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => handleToggleStatus(vehicle)}
-                            className={`relative inline-flex items-center h-6 rounded-full w-11 ${vehicle.isActive ? 'bg-green-500' : 'bg-gray-300'} ${statusUpdating[vehicle.id || ''] ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                            disabled={statusUpdating[vehicle.id || '']}
+                            className={`relative inline-flex items-center h-6 rounded-full w-11 ${vehicle.isActive ? 'bg-green-500' : 'bg-gray-300'} ${statusUpdating[vehicle._id || ''] ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            disabled={statusUpdating[vehicle._id || '']}
                             title={vehicle.isActive ? 'Active - Click to deactivate' : 'Inactive - Click to activate'}
                           >
-                            <span 
-                              className={`inline-block w-4 h-4 transform transition-transform duration-200 ease-in-out bg-white rounded-full ${vehicle.isActive ? 'translate-x-6' : 'translate-x-1'}`} 
+                            <span
+                              className={`inline-block w-4 h-4 transform transition-transform duration-200 ease-in-out bg-white rounded-full ${vehicle.isActive ? 'translate-x-6' : 'translate-x-1'}`}
                             />
-                            {statusUpdating[vehicle.id || ''] && (
+                            {statusUpdating[vehicle._id || ''] && (
                               <span className="absolute inset-0 flex items-center justify-center">
                                 <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -314,7 +313,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
-                            onClick={() => handleViewVehicle(vehicle.id)}
+                            onClick={() => handleViewVehicle(vehicle._id)}
                             className="text-blue-600 hover:text-blue-900 mr-3"
                             title="View vehicle details"
                           >
@@ -328,7 +327,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
                             <Edit size={18} />
                           </button>
                           <button
-                            onClick={() => handleDelete(vehicle.id)}
+                            onClick={() => handleDelete(vehicle._id)}
                             className="text-red-600 hover:text-red-900"
                             title="Delete vehicle"
                           >
@@ -344,6 +343,14 @@ const VehicleList: React.FC<VehicleListProps> = ({ onViewVehicle }) => {
           </div>
         </>
       )}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        variant="danger"
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

@@ -1,23 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { ArrowLeft, Calendar, Search } from "lucide-react";
 // import { userService } from "../../../../../services/user.service";
 import { toast } from "react-hot-toast";
-import { userService } from "../../../../services/user";
 import { adminService } from "../../../../services/admin";
-import type { User } from "../../../../types";
-// import { driverService } from "../../../../../services/driver.service";
-
-
+import type { User, Order } from "../../../../types";
 
 interface Address {
   street: string;
   latitude: number;
   longitude: number;
 }
-
-
-
-
 
 interface CustomerDetailViewProps {
   userId: string;
@@ -28,58 +20,34 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
   userId,
   onBack,
 }) => {
-  const [customer, setCustomer] = useState<User | null>(null);
+  const [customer, setCustomer] = useState<User & { Bookings: Order[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchCustomerDetails();
-    // fetchCustomerOrders();
-  }, [userId]);
-
-  const fetchCustomerDetails = async () => {
+  const fetchCustomerDetails = useCallback(async () => {
     try {
       const response = await adminService.getUserById(userId);
       setCustomer((prev) => ({
-        ...prev,
-        ...response.data.user,
+        ...response,
         Bookings: prev?.Bookings || [],
       }));
+      setOrdersLoading(false);
     } catch (error) {
       console.error("Error fetching customer details:", error);
       toast.error("Failed to fetch customer details");
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
-  // const fetchCustomerOrders = async () => {
-  //   try {
-  //     setOrdersLoading(true);
-  //     const Bookings = await userService.getOrdersByUserId(userId);
+  useEffect(() => {
+    fetchCustomerDetails();
+    // fetchCustomerOrders();
+  }, [fetchCustomerDetails]);
 
-  //     const updatedOrders = await Promise.all(
-  //       Bookings.map(async (order) => {
-  //         if (order.driverId) {
-  //           const driver = await driverService.getDriverById(order.driverId);
-  //           return { ...order, driver: driver.partner };
-  //         }
-  //         return order;
-  //       })
-  //     );
-
-  //     setCustomer((prev) => (prev ? { ...prev, Bookings: updatedOrders } : null));
-  //   } catch (error) {
-  //     console.error("Error fetching customer Bookings:", error);
-  //     toast.error("Failed to fetch customer Bookings");
-  //   } finally {
-  //     setOrdersLoading(false);
-  //   }
-  // };
-
-  const formatDate = (dateString: date) => {
+  const formatDate = (dateString: string | Date) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       day: "numeric",
@@ -118,8 +86,8 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
   };
 
   const filteredOrders =
-    customer?.Bookings?.filter((order) =>
-      order.id.toLowerCase().includes(searchTerm.toLowerCase())
+    customer?.Bookings?.filter((order: Order) =>
+      (order._id || '').toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
   if (loading) return <div className="text-center py-4">Loading...</div>;
@@ -241,15 +209,15 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                     Loading bookings..
                   </td>
                 </tr>
-              ) : 
-                filteredOrders.length>0?(
+              ) :
+                filteredOrders.length > 0 ? (
                   filteredOrders.map((order) => (
                     <tr
-                      key={order.id}
+                      key={order._id}
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{order.id.substring(0, 8)}
+                        #{order._id?.substring(0, 8)}
                       </td>
                       <td className="py-4 px-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
@@ -263,11 +231,11 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                         <div className="flex flex-col">
                           <div className="flex items-center text-sm text-gray-900">
                             <span className="w-2 h-2 inline-block bg-blue-400 rounded-full mr-2"></span>
-                            {order.driver?.fullName || "N/A"}
+                            {order.driverName || "N/A"}
                           </div>
                           <div className="flex items-center text-xs text-gray-500 mt-1">
                             <span className="w-2 h-2 inline-block bg-yellow-400 rounded-full mr-2"></span>
-                            {order.driver?.mobileNumber || "N/A"}
+                            {order.driverPhone || "N/A"}
                           </div>
                         </div>
                       </td>
@@ -275,11 +243,11 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                         <div className="flex flex-col">
                           <div className="flex items-center text-sm text-gray-900">
                             <span className="w-2 h-2 inline-block bg-green-400 rounded-full mr-2"></span>
-                            {getSimplifiedAddress(order.pickupAddress)}
+                            {getSimplifiedAddress(order.pickupAddress as unknown as Address)}
                           </div>
                           <div className="flex items-center text-xs text-gray-500 mt-1">
                             <span className="w-2 h-2 inline-block bg-red-400 rounded-full mr-2"></span>
-                            {getSimplifiedAddress(order.dropoffAddress)}
+                            {getSimplifiedAddress(order.dropoffAddress as unknown as Address)}
                           </div>
                         </div>
                       </td>
@@ -311,15 +279,15 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                       </td>
                     </tr>
                   ))
-                
-                
-              ):(
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500">
-                    No Bookings found
-                  </td>
-                </tr>
-              )}
+
+
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-gray-500">
+                      No Bookings found
+                    </td>
+                  </tr>
+                )}
             </tbody>
           </table>
         </div>

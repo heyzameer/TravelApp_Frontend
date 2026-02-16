@@ -1,5 +1,5 @@
 import api from "./api";
-import type { ApiResponse, User, PartnerUser, Booking, Property } from "../types";
+import type { ApiResponse, User, PartnerUser, Booking, Property, VehicleType } from "../types";
 
 class AdminService {
     async getAllUsers(pagination?: { page: number; limit: number }, filter?: { role?: string; status?: string }): Promise<{ users: User[]; pagination: { page: number; limit: number; total: number } }> {
@@ -95,6 +95,23 @@ class AdminService {
     async createProperty(propertyData: Partial<Property>): Promise<Property> {
         const response = await api.post<ApiResponse<{ property: Property }>>('/admin/properties', propertyData);
         return response.data.data.property;
+    }
+
+    async getVehicles(): Promise<VehicleType[]> {
+        const response = await api.get<ApiResponse<{ vehicles: VehicleType[] }>>('/admin/vehicles');
+        return response.data.data.vehicles;
+    }
+
+    async uploadVehicleImage(data: FormData): Promise<{ success: boolean; imageUrl: string }> {
+        const response = await api.post<ApiResponse<{ imageUrl: string }>>('/admin/vehicles/upload', data, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return {
+            success: response.data.success,
+            imageUrl: response.data.data.imageUrl
+        };
     }
 }
 

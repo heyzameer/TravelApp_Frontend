@@ -9,6 +9,7 @@ export interface User {
     isVerified: boolean;
     createdAt: string;
     updatedAt: string;
+    wishlist?: string[];
     // Partner specific fields (optional as they might be merged or separate)
     partnerId?: string;
     verificationStatus?: {

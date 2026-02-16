@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    ArrowLeft, MapPin, Building, DollarSign, Home,
-    Star, Users, Bed, ShieldCheck, Calendar,
+    ArrowLeft, MapPin, Building, DollarSign,
+    Star, Bed, ShieldCheck, Calendar,
     MessageSquare, Trash2, Edit2, ExternalLink
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
@@ -33,8 +33,8 @@ const PropertyDetail: React.FC = () => {
                 isActive: !selectedProperty.isActive
             })).unwrap();
             toast.success(selectedProperty.isActive ? 'Property deactivated' : 'Property activated');
-        } catch (err: any) {
-            toast.error(err || 'Failed to update status');
+        } catch (err: unknown) {
+            toast.error((typeof err === 'string' ? err : '') || 'Failed to update status');
         } finally {
             setIsActionLoading(false);
         }
@@ -48,8 +48,8 @@ const PropertyDetail: React.FC = () => {
                 await dispatch(deleteProperty(id)).unwrap();
                 toast.success('Property deleted successfully');
                 navigate('/admin/properties');
-            } catch (err: any) {
-                toast.error(err || 'Failed to delete property');
+            } catch (err: unknown) {
+                toast.error((typeof err === 'string' ? err : '') || 'Failed to delete property');
             } finally {
                 setIsActionLoading(false);
             }
@@ -90,7 +90,6 @@ const PropertyDetail: React.FC = () => {
         pricePerNight,
         maxGuests,
         totalRooms,
-        availableRooms,
         verificationStatus,
         isActive,
         coverImage,
@@ -118,6 +117,7 @@ const PropertyDetail: React.FC = () => {
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3 flex-wrap">
                             <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">{propertyName}</h1>
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                             <VerificationStatusBadge status={verificationStatus === 'verified' ? 'approved' : verificationStatus === 'pending' ? 'manual_review' : verificationStatus as any} />
                             <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${isActive ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
                                 {isActive ? 'Active' : 'Inactive'}
@@ -144,8 +144,8 @@ const PropertyDetail: React.FC = () => {
                             onClick={handleToggleStatus}
                             disabled={isActionLoading}
                             className={`px-6 py-2.5 rounded-xl font-bold transition-all shadow-sm border ${isActive
-                                    ? 'bg-white text-orange-600 border-orange-100 hover:bg-orange-50'
-                                    : 'bg-white text-green-600 border-green-100 hover:bg-green-50'
+                                ? 'bg-white text-orange-600 border-orange-100 hover:bg-orange-50'
+                                : 'bg-white text-green-600 border-green-100 hover:bg-green-50'
                                 }`}
                         >
                             {isActive ? 'Deactivate' : 'Activate'}
@@ -184,7 +184,7 @@ const PropertyDetail: React.FC = () => {
                     <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
                         <div className="aspect-[21/9] relative group">
                             <img
-                                src={coverImage || images?.[0] || '/hero-prop.jpg'}
+                                src={coverImage || images?.[0]?.url || '/hero-prop.jpg'}
                                 alt={propertyName}
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             />
@@ -203,7 +203,7 @@ const PropertyDetail: React.FC = () => {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {images?.map((img, idx) => (
                                     <div key={idx} className="aspect-square rounded-2xl overflow-hidden cursor-pointer border border-gray-100 group relative">
-                                        <img src={img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                        <img src={img.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                                             <ExternalLink size={24} className="text-white" />
                                         </div>

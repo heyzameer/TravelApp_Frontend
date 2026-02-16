@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { useAppDispatch } from './store/hooks';
 import { socketService } from './services/socketService';
 import { updatePartnerInStore } from './store/slices/partnersSlice';
+import type { PartnerUser } from './types';
 import { toast } from 'react-hot-toast';
 
 const SocketManager: React.FC = () => {
@@ -13,22 +14,22 @@ const SocketManager: React.FC = () => {
         socketService.connect();
 
         // Event handlers
-        const handlePartnerAadhaarSubmitted = (data: any) => {
+        const handlePartnerAadhaarSubmitted = (data: Record<string, unknown>) => {
             console.log('Socket: Aadhaar submitted', data);
-            toast.success(`New document uploaded by ${data.partnerName || 'Unknown Partner'}`);
-            dispatch(updatePartnerInStore(data.partner));
+            toast.success(`New document uploaded by ${(data.partnerName as string) || 'Unknown Partner'}`);
+            dispatch(updatePartnerInStore(data.partner as PartnerUser));
         };
 
-        const handleVerificationApproved = (data: any) => {
+        const handleVerificationApproved = (data: Record<string, unknown>) => {
             console.log('Socket: Verification approved', data);
             // toast.success(`Verification approved for ${data.partnerName}`);
-            dispatch(updatePartnerInStore(data.partner));
+            dispatch(updatePartnerInStore(data.partner as PartnerUser));
         };
 
-        const handleVerificationRejected = (data: any) => {
+        const handleVerificationRejected = (data: Record<string, unknown>) => {
             console.log('Socket: Verification rejected', data);
             // toast.error(`Verification rejected for ${data.partnerName}`);
-            dispatch(updatePartnerInStore(data.partner));
+            dispatch(updatePartnerInStore(data.partner as PartnerUser));
         };
 
         // Attach listeners

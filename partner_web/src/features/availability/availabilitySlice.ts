@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { AxiosError } from 'axios';
 import toast from 'react-hot-toast';
 import type { CalendarDay, CustomPricing, AvailabilityCalendarResponse, ApiResponse } from '../../types';
 
@@ -29,8 +30,14 @@ export const fetchAvailabilityCalendar = createAsyncThunk(
                 `/rooms/${roomId}/availability?month=${month}&year=${year}`
             );
             return response.data.data;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch availability calendar');
+        } catch (error: unknown) {
+            let message = 'Failed to fetch availability calendar';
+            if (error instanceof AxiosError && error.response?.data?.message) {
+                message = error.response.data.message;
+            } else if (error instanceof Error) {
+                message = error.message;
+            }
+            return rejectWithValue(message);
         }
     }
 );
@@ -47,8 +54,14 @@ export const blockDates = createAsyncThunk(
                 { dates, reason, propertyId }
             );
             return { dates, reason };
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to block dates');
+        } catch (error: unknown) {
+            let message = 'Failed to block dates';
+            if (error instanceof AxiosError && error.response?.data?.message) {
+                message = error.response.data.message;
+            } else if (error instanceof Error) {
+                message = error.message;
+            }
+            return rejectWithValue(message);
         }
     }
 );
@@ -64,8 +77,14 @@ export const unblockDates = createAsyncThunk(
                 }
             );
             return { dates };
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to unblock dates');
+        } catch (error: unknown) {
+            let message = 'Failed to unblock dates';
+            if (error instanceof AxiosError && error.response?.data?.message) {
+                message = error.response.data.message;
+            } else if (error instanceof Error) {
+                message = error.message;
+            }
+            return rejectWithValue(message);
         }
     }
 );
@@ -82,8 +101,14 @@ export const setCustomPricing = createAsyncThunk(
                 { date, propertyId, pricing }
             );
             return { date, pricing };
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to set custom pricing');
+        } catch (error: unknown) {
+            let message = 'Failed to set custom pricing';
+            if (error instanceof AxiosError && error.response?.data?.message) {
+                message = error.response.data.message;
+            } else if (error instanceof Error) {
+                message = error.message;
+            }
+            return rejectWithValue(message);
         }
     }
 );

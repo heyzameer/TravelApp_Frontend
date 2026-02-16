@@ -130,8 +130,8 @@ const EditProfile: React.FC = () => {
       const response = await userService.editProfile(formDataToSend);
       console.log("Profile update response:", response);
 
-      if (response && response.data) {
-        const updatedUser = { ...user, ...response.data };
+      if (response) {
+        const updatedUser = { ...user, ...response };
         dispatch(updateUser(updatedUser));
         toast.success("Profile updated successfully");
         navigate("/profile");

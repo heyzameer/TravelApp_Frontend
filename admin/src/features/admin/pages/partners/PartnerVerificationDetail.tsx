@@ -8,6 +8,7 @@ import DocumentViewer from '../../components/DocumentViewer';
 import VerificationStatusBadge from '../../components/VerificationStatusBadge';
 import RejectionReasonModal from '../../components/RejectionReasonModal';
 import EditVerificationModal from '../../components/EditVerificationModal';
+import type { PartnerUser } from '../../../../types';
 import { toast } from 'react-hot-toast';
 
 const PartnerVerificationDetail: React.FC = () => {
@@ -36,7 +37,7 @@ const PartnerVerificationDetail: React.FC = () => {
                 action: 'approve'
             })).unwrap();
             toast.success('Partner Aadhaar verified successfully');
-        } catch (err) {
+        } catch {
             toast.error('Failed to approve verification');
         } finally {
             setIsActionLoading(false);
@@ -55,14 +56,14 @@ const PartnerVerificationDetail: React.FC = () => {
             })).unwrap();
             toast.success('Partner Aadhaar verification rejected');
             setIsRejectModalOpen(false);
-        } catch (err) {
+        } catch {
             toast.error('Failed to reject verification');
         } finally {
             setIsActionLoading(false);
         }
     };
 
-    const handleUpdateDetails = async (data: any) => {
+    const handleUpdateDetails = async (data: Partial<PartnerUser>) => {
         if (!partnerId) return;
 
         setIsActionLoading(true);
@@ -73,7 +74,7 @@ const PartnerVerificationDetail: React.FC = () => {
             })).unwrap();
             toast.success('Partner details updated successfully');
             setIsEditModalOpen(false);
-        } catch (err) {
+        } catch {
             toast.error('Failed to update details');
         } finally {
             setIsActionLoading(false);

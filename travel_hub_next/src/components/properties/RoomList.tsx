@@ -1,27 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { consumerApi } from '@/services/consumerApi';
+import { consumerApi, IRoom as Room } from '@/services/consumerApi';
 import { Users, CheckCircle, BedDouble, ArrowRight } from 'lucide-react';
 import { RoomDetailModal } from './RoomDetailModal';
 import Image from 'next/image';
-
-// Updated interface based on API response
-interface Room {
-    _id: string;
-    roomType: string; // was type
-    sharingType: string;
-    basePricePerNight: number; // was price
-    amenities: string[];
-    description?: string;
-    images: { url: string }[] | string[];
-    baseOccupancy: number;
-    maxOccupancy: number; // was capacity
-    bedConfiguration: string;
-    hasSelfCooking: boolean;
-    roomName?: string;
-    isActive: boolean;
-}
 
 interface RoomListProps {
     propertyId: string;
@@ -114,6 +97,8 @@ export const RoomList: React.FC<RoomListProps> = ({ propertyId, onRoomSelect, se
                                             alt={room.roomType}
                                             className="object-cover group-hover:scale-110 transition-transform duration-500"
                                             fill
+                                            loading="eager"
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                         />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-gray-300">

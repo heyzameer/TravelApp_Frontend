@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import AdminRoutes from './AdminRoutes';
 
 const AdminLoginPage = lazy(() => import('../pages/admin/AdminLoginPage'));
+const LandingPage = lazy(() => import('../pages/LandingPage'));
 
 // Fallback UI while components load
 const Loader = () => (
@@ -15,6 +16,9 @@ const AppRoutes = () => {
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
+        {/* Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* Admin Login */}
         <Route path="/admin" element={<AdminLoginPage />} />
 

@@ -1,0 +1,17 @@
+﻿
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/features/admin/pages/bookings/BookingsList.tsx(68,47): error TS2367: This comparison appears to be unintentional because the types '"rejected" | "completed" | "pending_payment" | "payment_completed" | "confirmed" | "checked_in" | "checked_out" | "cancelled"' and '"pending"' have no overlap.
+src/features/admin/pages/bookings/BookingsList.tsx(238,79): error TS2339: Property 'id' does not exist on type 'Booking'.
+src/pages/admin/AdminDashboard.tsx(17,3): error TS6133: 'AlertCircle' is declared but its value is never read.
+src/pages/admin/AdminDashboard.tsx(23,3): error TS6133: 'Car' is declared but its value is never read.
+src/pages/admin/AdminDashboard.tsx(172,10): error TS6133: 'selectedVehicleId' is declared but its value is never read.
+src/pages/admin/AdminDashboard.tsx(172,29): error TS6133: 'setSelectedVehicleId' is declared but its value is never read.
+src/pages/admin/AdminDashboard.tsx(175,10): error TS6133: 'selectedOrderId' is declared but its value is never read.
+src/pages/admin/AdminDashboard.tsx(175,26): error TS6133: 'setSelectedOrderId' is declared but its value is never read.
+src/pages/admin/components/order/OrderTable.tsx(2,1): error TS6133: 'useNavigate' is declared but its value is never read.
+src/pages/admin/components/order/OrderTable.tsx(18,3): error TS6133: 'onViewOrder' is declared but its value is never read.
+src/pages/admin/components/order/OrderTable.tsx(106,25): error TS18048: 'order.pickupAddress' is possibly 'undefined'.
+src/pages/admin/components/order/OrderTable.tsx(109,28): error TS18048: 'order.dropoffAddress' is possibly 'undefined'.
+src/pages/admin/components/partners/PartnerDetailView.tsx(58,12): error TS2678: Type '"Cancelled"' is not comparable to type '"rejected" | "completed" | "pending_payment" | "payment_completed" | "confirmed" | "checked_in" | "checked_out" | "cancelled" | "Pending" | "Out For Delivery" | "Delivered"'.

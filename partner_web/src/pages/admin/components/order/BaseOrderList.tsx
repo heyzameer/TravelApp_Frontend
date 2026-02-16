@@ -1,35 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Calendar, CheckCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import FilterSection from './FilterSection';
 import StatusCard from './StatusCard';
 import OrderTable from './OrderTable';
 import { getStatusColor, getPaymentStatusColor, formatDate, formatTime } from './orderUtils';
-import { orderService } from '../../../../../services/order.service';
-import { userService } from '../../../../../services/user.service';
-import { driverService } from '../../../../../services/driver.service';
-
-interface Booking{
-  id: string;
-  createdAt: string;
-  customerId: string;
-  deliveryType: string;
-  distance: number;
-  driverId: string;
-  dropoffAddress: { street: string; latitude: number; longitude: number };
-  estimatedTime: string;
-  paymentMethod: string;
-  pickupAddress: { street: string; latitude: number; longitude: number };
-  status: string;
-  totalAmount: number;
-  updatedAt: string;
-  vehicleId: string;
-  vehicleName: string;
-  customerName?: string;
-  driverName?: string;
-  customerPhone?: number;
-  driverPhone?: number;
-}
+import { adminService } from '../../../../services/admin';
+import type { Order, User } from '../../../../types';
 
 interface StatusCounts {
   pending: number;
@@ -70,42 +47,39 @@ const BaseOrderList: React.FC<BaseOrderListProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true); 
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
-    setIsLoading(true); 
+  const fetchOrders = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const ordersData = await orderService.getAllOrder();
+      const ordersData = await adminService.getAllBookings();
       console.log('ordersData==>', ordersData);
 
       if (ordersData && Array.isArray(ordersData)) {
         // Fetch customer and driver details for each order
         const enrichedOrders = await Promise.all(
-          ordersData.map(async (order: Order) => {
+          ordersData.map(async (order) => {
             try {
-              if (order.customerId || order.driverId) {
-                const userResponse = await userService.getUserById(order.customerId);
-                const driverResponse = await driverService.getDriverById(order.driverId);
+              if (order.userId || order.partnerId) {
+                const userResponse = typeof order.userId === 'string' ? await adminService.getUserById(order.userId) : order.userId;
+                const driverResponse = order.partnerId ? await adminService.getPartnerById(order.partnerId) : null;
+                const user = userResponse as User;
                 return {
                   ...order,
-                  customerName: userResponse?.user.fullName || 'Unknown Customer',
-                  customerPhone: userResponse?.user.phone,
-                  driverName: driverResponse?.partner.fullName || 'Unknown Driver',
-                  driverPhone: driverResponse?.partner.mobileNumber,
-                };
+                  customerName: user?.fullName || 'Unknown Customer',
+                  customerPhone: user?.phone ? Number(user.phone) : undefined,
+                  driverName: driverResponse?.fullName || 'Unknown Driver',
+                  driverPhone: driverResponse?.phone ? Number(driverResponse.phone) : undefined,
+                } as unknown as Order;
               }
-              return order;
+              return order as unknown as Order;
             } catch (error) {
-              console.error(`Error fetching details for Booking${order.id}:`, error);
+              console.error(`Error fetching details for Booking ${order._id}:`, error);
               return {
                 ...order,
                 customerName: 'Unknown Customer',
                 driverName: 'Unknown Driver',
-              };
+              } as unknown as Order;
             }
           })
         );
@@ -113,10 +87,10 @@ const BaseOrderList: React.FC<BaseOrderListProps> = ({
         // Filter Bookings by status if specified
         const filteredOrders = statusFilter
           ? enrichedOrders.filter((order) =>
-              Array.isArray(statusFilter)
-                ? statusFilter.includes(order.status.toLowerCase())
-                : order.status.toLowerCase() === statusFilter
-            )
+            Array.isArray(statusFilter)
+              ? statusFilter.includes((order.status || '').toLowerCase())
+              : (order.status || '').toLowerCase() === statusFilter
+          )
           : enrichedOrders;
 
         setOrders(filteredOrders);
@@ -124,7 +98,7 @@ const BaseOrderList: React.FC<BaseOrderListProps> = ({
         // Update status counts
         const counts = enrichedOrders.reduce(
           (acc, order) => {
-            switch (order.status.toLowerCase()) {
+            switch ((order.status || '').toLowerCase()) {
               case 'pending':
                 acc.pending += 1;
                 break;
@@ -174,17 +148,21 @@ const BaseOrderList: React.FC<BaseOrderListProps> = ({
       console.error('Error fetching Bookings:', error);
       toast.error('An error occurred while fetching Bookings');
     } finally {
-        setIsLoading(false);
-      }
-  };
+      setIsLoading(false);
+    }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   // Filter Bookings based on search, branch, and date range
-  const filteredOrders = Bookings.filter((order) => {
+  const filteredOrders = Bookings.filter((order: Order) => {
     const matchesSearch =
       searchQuery === '' ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order._id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.status.toLowerCase().includes(searchQuery.toLowerCase());
+      (order.status || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesBranch = branch === 'All Branch' || order.branch === branch; // Adjust if branch is part of Bookingdata
 

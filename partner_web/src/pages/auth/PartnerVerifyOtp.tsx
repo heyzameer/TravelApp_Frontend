@@ -51,6 +51,7 @@ const PartnerVerifyOtp: React.FC = () => {
             toast.success("New OTP sent!");
             setResendTimer(30);
         } catch (error) {
+            console.error("Resend OTP error:", error);
             toast.error("Failed to resend OTP.");
         }
     };

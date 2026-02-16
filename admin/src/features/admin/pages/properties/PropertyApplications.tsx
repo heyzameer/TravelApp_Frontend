@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../../../services/admin';
-import { Search, Eye, Clock, Building, MapPin, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Eye, Clock, Building, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 interface PropertyApplication {
@@ -39,9 +39,10 @@ const PropertyApplications: React.FC = () => {
             const response = await adminService.getAllPropertyApplications();
             const data = response.data || response;
             setApplications(data.properties || data || []);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to fetch property applications:', err);
-            setError(err.response?.data?.message || 'Failed to load applications');
+            const axiosErr = err as { response?: { data?: { message?: string } } };
+            setError(axiosErr.response?.data?.message || 'Failed to load applications');
             toast.error('Failed to load property applications');
         } finally {
             setIsLoading(false);

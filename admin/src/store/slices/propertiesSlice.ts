@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { adminService } from '../../services/admin';
+import { AxiosError } from 'axios';
 
 import type { Property } from '../../types';
 
@@ -25,8 +26,11 @@ export const fetchAllProperties = createAsyncThunk(
             const response = await adminService.getAllProperties();
             // response is { success: true, data: { properties: [] } }
             return response.data?.properties || response.properties || [];
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch properties');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch properties');
+            }
+            return rejectWithValue('Failed to fetch properties');
         }
     }
 );
@@ -39,20 +43,26 @@ export const fetchPropertyById = createAsyncThunk(
             // response matches ApiResponse<T> from backend: { success: true, data: { property: ... } }
             // adminService returns response.data (the body)
             return response.data?.property || response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch property');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch property');
+            }
+            return rejectWithValue('Failed to fetch property');
         }
     }
 );
 
 export const addProperty = createAsyncThunk(
     'properties/add',
-    async (propertyData: any, { rejectWithValue }) => {
+    async (propertyData: Partial<Property>, { rejectWithValue }) => {
         try {
             const response = await adminService.createProperty(propertyData);
             return response.data?.property || response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to add property');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to add property');
+            }
+            return rejectWithValue('Failed to add property');
         }
     }
 );
@@ -60,14 +70,17 @@ export const addProperty = createAsyncThunk(
 export const updateProperty = createAsyncThunk(
     'properties/update',
     async (
-        { propertyId, propertyData }: { propertyId: string; propertyData: any },
+        { propertyId, propertyData }: { propertyId: string; propertyData: Partial<Property> },
         { rejectWithValue }
     ) => {
         try {
             const response = await adminService.updateProperty(propertyId, propertyData);
             return response.data?.property || response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update property');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to update property');
+            }
+            return rejectWithValue('Failed to update property');
         }
     }
 );
@@ -78,8 +91,11 @@ export const deleteProperty = createAsyncThunk(
         try {
             await adminService.deleteProperty(propertyId);
             return propertyId;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to delete property');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to delete property');
+            }
+            return rejectWithValue('Failed to delete property');
         }
     }
 );
@@ -93,8 +109,11 @@ export const togglePropertyStatus = createAsyncThunk(
         try {
             const response = await adminService.updateProperty(propertyId, { isActive });
             return response.data?.property || response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to toggle property status');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to toggle property status');
+            }
+            return rejectWithValue('Failed to toggle property status');
         }
     }
 );
@@ -108,8 +127,11 @@ export const updatePropertyDocumentStatus = createAsyncThunk(
         try {
             const response = await adminService.updatePropertyDocumentStatus(propertyId, section, status, rejectionReason);
             return response.data?.property || response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update document status');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to update document status');
+            }
+            return rejectWithValue('Failed to update document status');
         }
     }
 );
@@ -123,8 +145,11 @@ export const verifyProperty = createAsyncThunk(
         try {
             const response = await adminService.verifyProperty(propertyId, status, rejectionReason);
             return response.data?.property || response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to verify property');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to verify property');
+            }
+            return rejectWithValue('Failed to verify property');
         }
     }
 );

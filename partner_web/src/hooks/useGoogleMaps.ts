@@ -54,7 +54,7 @@ export const useGoogleMaps = ({
       console.log('Loading Google Maps script...');
       const script = document.createElement('script');
       const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      
+
       if (!apiKey) {
         reject(new Error('Google Maps API key is missing'));
         return;
@@ -77,6 +77,35 @@ export const useGoogleMaps = ({
 
       document.head.appendChild(script);
     });
+  }, []);
+
+  // Reverse geocode coordinates to address - use stable callback
+  const reverseGeocode = useCallback((lat: number, lng: number) => {
+    if (!geocoderRef.current) {
+      console.log('Geocoder not available, using coordinates as address');
+      stableOnLocationSelect.current(lat, lng, `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+      return;
+    }
+
+    console.log('Starting reverse geocoding for:', lat, lng);
+
+    geocoderRef.current.geocode(
+      { location: { lat, lng } },
+      (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+        if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+          const address = results[0].formatted_address;
+          console.log('Reverse geocoding successful:', address);
+          stableOnLocationSelect.current(lat, lng, address);
+        } else {
+          console.log('Reverse geocoding failed or no results:', status);
+          stableOnLocationSelect.current(
+            lat,
+            lng,
+            `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+          );
+        }
+      }
+    );
   }, []);
 
   // Place marker on map - simplified and more stable
@@ -120,36 +149,7 @@ export const useGoogleMaps = ({
       console.error('Error placing marker:', error);
       toast.error('Error placing marker on map');
     }
-  }, []);
-
-  // Reverse geocode coordinates to address - use stable callback
-  const reverseGeocode = useCallback((lat: number, lng: number) => {
-    if (!geocoderRef.current) {
-      console.log('Geocoder not available, using coordinates as address');
-      stableOnLocationSelect.current(lat, lng, `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-      return;
-    }
-
-    console.log('Starting reverse geocoding for:', lat, lng);
-
-    geocoderRef.current.geocode(
-  { location: { lat, lng } },
-  (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
-    if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
-      const address = results[0].formatted_address;
-      console.log('Reverse geocoding successful:', address);
-      stableOnLocationSelect.current(lat, lng, address);
-    } else {
-      console.log('Reverse geocoding failed or no results:', status);
-      stableOnLocationSelect.current(
-        lat,
-        lng,
-        `${lat.toFixed(6)}, ${lng.toFixed(6)}`
-      );
-    }
-  }
-);
-  }, []);
+  }, [reverseGeocode]);
 
   // Function to handle manual coordinate calculation from React events
   const handleMapClick = useCallback((clientX: number, clientY: number) => {
@@ -172,15 +172,15 @@ export const useGoogleMaps = ({
       if (bounds) {
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
-        
+
         const latRange = ne.lat() - sw.lat();
         const lngRange = ne.lng() - sw.lng();
-        
+
         const lat = ne.lat() - (y / rect.height) * latRange;
         const lng = sw.lng() + (x / rect.width) * lngRange;
-        
+
         console.log('📍 Calculated coordinates:', { lat, lng });
-        
+
         if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
           placeMarker(lat, lng);
           reverseGeocode(lat, lng);
@@ -251,13 +251,13 @@ export const useGoogleMaps = ({
       // Wait for map to be fully loaded
       window.google.maps.event.addListenerOnce(mapInstance, 'idle', () => {
         console.log('Map is ready and idle, adding click listener...');
-        
+
         // Remove any existing click listener
         if (clickListenerRef.current) {
           window.google.maps.event.removeListener(clickListenerRef.current);
           clickListenerRef.current = null;
         }
-        
+
         // Add click listener - single method for stability
         try {
           clickListenerRef.current = mapInstance.addListener('click', (event: google.maps.MapMouseEvent) => {
@@ -275,7 +275,7 @@ export const useGoogleMaps = ({
           setIsLoaded(true);
           setError('');
           toast.success('Map ready! Click anywhere to place a marker.');
-          
+
         } catch (error) {
           console.error('Error adding click listener:', error);
           setIsLoaded(true);
@@ -288,7 +288,7 @@ export const useGoogleMaps = ({
     } catch (error) {
       console.error('Map initialization failed:', error);
       setError(`Failed to load map: ${(error as Error).message}`);
-      
+
       // Retry initialization
       if (initAttempts.current < maxInitAttempts) {
         console.log(`Retrying map initialization in 2 seconds... (${initAttempts.current}/${maxInitAttempts})`);
@@ -331,9 +331,9 @@ export const useGoogleMaps = ({
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        
+
         console.log('Current location obtained:', { lat, lng });
-        
+
         if (mapInstanceRef.current) {
           mapInstanceRef.current.setCenter({ lat, lng });
           mapInstanceRef.current.setZoom(16);
@@ -346,7 +346,7 @@ export const useGoogleMaps = ({
       (error) => {
         console.error('Geolocation error:', error);
         setIsGettingLocation(false);
-        
+
         let message = 'Unable to get your location';
         switch (error.code) {
           case error.PERMISSION_DENIED:
@@ -437,7 +437,7 @@ export const useGoogleMaps = ({
     // Cleanup function
     return () => {
       console.log('Cleaning up Google Maps...');
-      
+
       // Clean up click listeners
       if (clickListenerRef.current && window.google) {
         try {
@@ -447,7 +447,7 @@ export const useGoogleMaps = ({
           console.warn('Error removing click listener:', error);
         }
       }
-      
+
       // Clean up marker
       if (markerRef.current) {
         try {
@@ -457,7 +457,7 @@ export const useGoogleMaps = ({
           console.warn('Error removing marker:', error);
         }
       }
-      
+
       // Clean up map instance
       if (mapInstanceRef.current && window.google) {
         try {
@@ -467,13 +467,13 @@ export const useGoogleMaps = ({
           console.warn('Error clearing map instance:', error);
         }
       }
-      
+
       // Clean up global callback
       if (window.initMap) {
         delete window.initMap;
       }
     };
-  }, []); // Empty dependency array - only run once
+  }, [initializeMap]);
 
   return {
     mapRef,

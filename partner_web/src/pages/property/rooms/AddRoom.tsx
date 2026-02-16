@@ -7,6 +7,8 @@ import { CategorizedImageUpload } from '../../../components/property/Categorized
 import { ArrowLeft, Save, Loader2, BedDouble, Users, IndianRupee, Layers } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+import type { ImageFile } from '../../../types';
+
 const ROOM_TYPES = ['Deluxe', 'Standard', 'Suite', 'Dormitory', 'Cottage', 'Villa', 'Apartment'];
 const SHARING_TYPES = ['Private', '2-Sharing', '3-Sharing', '4-Sharing', '6-Sharing', '8-Sharing', '10-Sharing'];
 const AMENITIES_LIST = ['WiFi', 'AC', 'TV', 'Heater', 'Balcony', 'Room Service', 'Iron', 'Kettle', 'Work Desk'];
@@ -35,7 +37,7 @@ const AddRoom: React.FC = () => {
     });
 
     // Images State
-    const [categorizedImages, setCategorizedImages] = useState<any[]>([]);
+    const [categorizedImages, setCategorizedImages] = useState<ImageFile[]>([]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -104,7 +106,7 @@ const AddRoom: React.FC = () => {
 
             navigate(`/partner/property/${propertyId}/rooms`);
         } catch (error) {
-            console.error(error);
+            console.error('Failed to create room:', error);
             // Error handling is in slice
         } finally {
             setLoading(false);

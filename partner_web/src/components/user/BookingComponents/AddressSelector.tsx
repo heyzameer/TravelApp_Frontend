@@ -114,13 +114,13 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
     if (showMapForPickup && pickupCoords && pickupMapHook.isLoaded) {
       pickupMapHook.setMapLocation(pickupCoords.lat, pickupCoords.lng);
     }
-  }, [showMapForPickup, pickupCoords, pickupMapHook.isLoaded]);
+  }, [showMapForPickup, pickupCoords, pickupMapHook]);
 
   useEffect(() => {
     if (showMapForDropoff && dropoffCoords && dropoffMapHook.isLoaded) {
       dropoffMapHook.setMapLocation(dropoffCoords.lat, dropoffCoords.lng);
     }
-  }, [showMapForDropoff, dropoffCoords, dropoffMapHook.isLoaded]);
+  }, [showMapForDropoff, dropoffCoords, dropoffMapHook]);
 
   // Fetch user addresses
   useEffect(() => {
@@ -131,8 +131,8 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
         setLoading(true);
         const response = await userService.getAddresses();
 
-        if (response.success && response.data) {
-          setAddresses(response.data.addresses);
+        if (response && Array.isArray(response)) {
+          setAddresses(response);
         }
       } catch (error) {
         console.error('Error fetching addresses:', error);
@@ -370,8 +370,8 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
                           longitude: address.longitude
                         })}
                         className={`group p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 ${pickupAddress?.addressId === address._id
-                            ? 'bg-red-50 border-red-200 shadow-md'
-                            : 'bg-white border-gray-100 hover:border-red-200 hover:shadow-sm'
+                          ? 'bg-red-50 border-red-200 shadow-md'
+                          : 'bg-white border-gray-100 hover:border-red-200 hover:shadow-sm'
                           }`}
                       >
                         <div className="flex items-center justify-between">
@@ -502,8 +502,8 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
                           longitude: address.longitude
                         })}
                         className={`group p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 ${dropoffAddress?.addressId === address._id
-                            ? 'bg-blue-50 border-blue-200 shadow-md'
-                            : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-sm'
+                          ? 'bg-blue-50 border-blue-200 shadow-md'
+                          : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-sm'
                           }`}
                       >
                         <div className="flex items-center justify-between">

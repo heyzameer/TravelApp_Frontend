@@ -14,6 +14,7 @@ import {
     ChevronLeft,
     ChevronDown,
     ChevronRight,
+    Map,
 } from 'lucide-react';
 import { useAppDispatch } from '../../../store/hooks';
 import { logoutUser } from '../../../store/slices/authSlice';
@@ -207,6 +208,14 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                         icon={<Users size={18} />}
                         title="Guests"
                         to="/admin/users"
+                        sidebarOpen={sidebarOpen}
+                    />
+
+                    {/* Destinations section */}
+                    <SidebarItem
+                        icon={<Map size={18} />}
+                        title="Destinations"
+                        to="/admin/destinations"
                         sidebarOpen={sidebarOpen}
                     />
 

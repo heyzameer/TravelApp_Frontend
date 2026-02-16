@@ -1,3 +1,5 @@
+
+
 export const UserRole = {
   CUSTOMER: 'customer',
   DELIVERY_PARTNER: 'delivery_partner',
@@ -33,8 +35,9 @@ export interface User {
   loyaltyPoints?: number;
   walletBalance?: number;
   bookings?: Booking[]; // Changed from order to bookings
-  totalBookings?: number; // For admin display
+  totalOrders?: number; // For admin display
   totalAmount?: number; // For admin display
+  totalProperties?: number; // For partner display
 
   // Partner specific fields
   isVerified?: boolean;
@@ -176,6 +179,10 @@ export interface PartnerUser {
   dateOfBirth: string;
   profilePicture?: string;
   profileImage?: string;
+  isVerified: boolean;
+  mobileNumber?: string;
+  vehicleType?: string;
+  registrationNumber?: string;
 
   personalDocuments: {
     aadharFront: string;
@@ -208,7 +215,6 @@ export interface PartnerUser {
 
   isAvailable: boolean;
   isActive: boolean;
-  isVerified: boolean;
   status: 'pending' | 'verified' | 'rejected';
 
   hasPendingRequest: boolean;
@@ -232,6 +238,35 @@ export interface PartnerUser {
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
+}
+
+export type Partner = PartnerUser;
+
+export interface Order {
+  _id: string;
+  customerId: string;
+  driverId?: string;
+  propertyId: string;
+  roomId: string;
+  checkIn: Date;
+  checkOut: Date;
+  status: 'completed' | 'pending_payment' | 'payment_completed' | 'confirmed' | 'rejected' | 'checked_in' | 'checked_out' | 'cancelled' | 'Pending' | 'Out For Delivery' | 'Delivered';
+  totalPrice: number;
+  totalAmount: number;
+  paymentMethod: string;
+  createdAt: string;
+  updatedAt: string;
+  customerName?: string;
+  customerPhone?: string;
+  driverName?: string;
+  driverPhone?: string;
+  vehicleName?: string;
+  distance?: number;
+  estimatedTime?: string;
+  deliveryType?: string;
+  pickupAddress?: { street: string };
+  dropoffAddress?: { street: string };
+  branch?: string;
 }
 
 export interface PartnerRegistrationData {
@@ -377,6 +412,33 @@ export interface AddressResponse {
   address: Address | null;
 }
 
+export interface VehicleType {
+  _id: string;
+  name: string;
+  description?: string;
+  basePrice: number;
+  pricePerKm: number;
+  maxWeight: number;
+  maxVolume?: number;
+  imageUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Assuming 'api' and 'ApiResponse' are defined elsewhere
+// This looks like part of an AdminService class
+
+export interface CreateVehicleInput {
+  name: string;
+  description?: string;
+  basePrice: number;
+  pricePerKm: number;
+  maxWeight: number;
+  maxVolume?: number;
+  imageUrl?: string;
+}
+
 export interface Property {
   _id: string;
   propertyName: string;
@@ -397,7 +459,11 @@ export interface Property {
   totalRooms: number;
   availableRooms: number;
   maxGuests: number;
-  images: string[];
+  images: (string | {
+    url: string;
+    category: string;
+    label?: string;
+  })[];
   coverImage?: string;
   ownerId: string;
 
@@ -408,6 +474,8 @@ export interface Property {
   bankingDetailsCompleted: boolean;
   imagesUploaded: boolean;
   onboardingCompleted: boolean;
+  rating?: number;
+  reviewsCount?: number;
 
   // Verification
   isVerified: boolean;
@@ -417,7 +485,7 @@ export interface Property {
   propertyId?: string;
   submittedForVerificationAt?: string;
   verifiedAt?: string;
-  destinationId?: string;
+  destinationId?: string | { _id: string; name: string };
   ownershipDocuments?: {
     ownershipProof?: string;
     ownerKYC?: string;
@@ -473,6 +541,7 @@ export interface Activity {
   propertyId: string;
   name: string;
   description: string;
+  category?: string; // e.g. 'Water', 'Resort', etc.
   duration: number; // minutes
   pricePerPerson: number;
   maxParticipants: number;
@@ -582,7 +651,7 @@ export interface Booking {
   paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
   paymentId?: string;
 
-  status: 'pending_payment' | 'payment_completed' | 'confirmed' | 'rejected' | 'checked_in' | 'checked_out' | 'cancelled';
+  status: 'pending_payment' | 'payment_completed' | 'confirmed' | 'rejected' | 'checked_in' | 'checked_out' | 'completed' | 'cancelled';
 
   partnerApprovalStatus: 'pending' | 'approved' | 'rejected';
   approvedAt?: string;
@@ -590,6 +659,12 @@ export interface Booking {
   rejectedAt?: string;
 
   cancellationReason?: string;
+
+  refundStatus?: 'not_requested' | 'requested' | 'approved' | 'rejected' | 'processed';
+  refundAmount?: number;
+  refundRequestedAt?: string;
+  refundProcessedAt?: string;
+  refundReason?: string;
 
   bookedAt: string;
   confirmedAt?: string;

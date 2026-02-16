@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { AppDispatch, RootState } from '../../../store';
@@ -8,6 +8,7 @@ import { Plus, Trash2, Clock, Users } from 'lucide-react';
 // Lucide has 'Tent', 'Compass', 'Bike'. Let's use 'Compass' or generic 'Ticket'.
 // Renaming import to avoid error:
 import { Compass } from 'lucide-react';
+import ConfirmModal from '../../../components/common/ConfirmModal';
 
 const ActivityList: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
@@ -21,10 +22,28 @@ const ActivityList: React.FC = () => {
         }
     }, [dispatch, propertyId]);
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this activity?')) {
-            await dispatch(deleteActivity(id));
-        }
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
+
+    const handleDelete = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Activity',
+            message: 'Are you sure you want to delete this activity? This will remove it from the list of available activities for this property.',
+            onConfirm: async () => {
+                await dispatch(deleteActivity(id));
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
     };
 
     return (
@@ -104,6 +123,14 @@ const ActivityList: React.FC = () => {
                     ))}
                 </div>
             )}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                variant="danger"
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };

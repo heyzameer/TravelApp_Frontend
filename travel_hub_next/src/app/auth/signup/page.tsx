@@ -116,7 +116,7 @@ export default function SignUpPage() {
                 <button
                     type="button"
                     className={styles.googleBtn}
-                    onClick={() => window.location.href = 'http://localhost:3000/api/v1/auth/google'}
+                    onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/auth/google`}
                 >
                     <div className="relative w-5 h-5">
                         <Image

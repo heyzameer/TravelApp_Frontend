@@ -23,6 +23,16 @@ const customIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
+// Red icon for places to visit
+const placeIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
 // Component to update map center when properties change
 const UpdateMapCenter = ({ center }: { center: [number, number] }) => {
     const map = useMap();
@@ -32,13 +42,37 @@ const UpdateMapCenter = ({ center }: { center: [number, number] }) => {
     return null;
 };
 
-interface PropertyMapProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    properties: any[];
-    center?: [number, number];
+interface PropertyInMap {
+    _id: string;
+    propertyName: string;
+    coverImage: string;
+    location: {
+        coordinates: [number, number];
+    };
+    address?: {
+        city: string;
+    };
 }
 
-const PropertyMap: React.FC<PropertyMapProps> = ({ properties, center = [12.9716, 77.5946] }) => {
+interface PlaceToVisit {
+    _id: string;
+    name: string;
+    description: string;
+    images?: string[];
+    coordinates: {
+        lat: number;
+        lng: number;
+    };
+    category?: string;
+}
+
+interface PropertyMapProps {
+    properties: PropertyInMap[];
+    center?: [number, number];
+    placesToVisit?: PlaceToVisit[];
+}
+
+const PropertyMap: React.FC<PropertyMapProps> = ({ properties, center = [12.9716, 77.5946], placesToVisit = [] }) => {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -60,6 +94,7 @@ const PropertyMap: React.FC<PropertyMapProps> = ({ properties, center = [12.9716
                 />
                 <UpdateMapCenter center={mapCenter} />
 
+                {/* Property Markers */}
                 {properties.map((prop) => (
                     prop.location?.coordinates && (
                         <Marker
@@ -75,16 +110,49 @@ const PropertyMap: React.FC<PropertyMapProps> = ({ properties, center = [12.9716
                                             alt={prop.propertyName}
                                             className="object-cover"
                                             fill
+                                            sizes="200px"
                                         />
                                     </div>
                                     <h3 className="font-bold text-gray-900">{prop.propertyName}</h3>
-                                    <p className="text-gray-500 text-xs mb-2 truncate">{prop.address.city}</p>
+                                    <p className="text-gray-500 text-xs mb-2 truncate">{prop.address?.city || ''}</p>
                                     <Link
                                         href={`/properties/${prop._id}`}
                                         className="block w-full text-center bg-emerald-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-emerald-600 transition-colors"
                                     >
                                         View Details
                                     </Link>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    )
+                ))}
+
+                {/* Places to Visit Markers */}
+                {placesToVisit.map((place) => (
+                    place.coordinates && (
+                        <Marker
+                            key={place._id}
+                            position={[place.coordinates.lat, place.coordinates.lng]}
+                            icon={placeIcon}
+                        >
+                            <Popup>
+                                <div className="min-w-[200px]">
+                                    {place.images?.[0] && (
+                                        <div className="w-full h-24 bg-gray-200 rounded-lg mb-2 overflow-hidden relative">
+                                            <Image
+                                                src={place.images[0]}
+                                                alt={place.name}
+                                                className="object-cover"
+                                                fill
+                                                sizes="200px"
+                                            />
+                                        </div>
+                                    )}
+                                    <h3 className="font-bold text-gray-900">{place.name}</h3>
+                                    <p className="text-gray-500 text-xs mb-1 line-clamp-2">{place.description}</p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded-md font-bold uppercase tracking-wider">{place.category || 'Sightseeing'}</span>
+                                    </div>
                                 </div>
                             </Popup>
                         </Marker>

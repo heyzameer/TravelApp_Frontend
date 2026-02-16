@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { adminService } from '../../services/admin';
+import { AxiosError } from 'axios';
 
 import type { Booking } from '../../types';
 
@@ -29,9 +30,12 @@ export const fetchAllBookings = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const response = await adminService.getAllBookings();
-            return response.bookings || [];
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch bookings');
+            return response.data.bookings || [];
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch bookings');
+            }
+            return rejectWithValue('Failed to fetch bookings');
         }
     }
 );
@@ -41,9 +45,12 @@ export const fetchBookingById = createAsyncThunk(
     async (bookingId: string, { rejectWithValue }) => {
         try {
             const response = await adminService.getBookingById(bookingId);
-            return response.booking;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch booking');
+            return response.data.booking;
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch booking');
+            }
+            return rejectWithValue('Failed to fetch booking');
         }
     }
 );
@@ -51,14 +58,17 @@ export const fetchBookingById = createAsyncThunk(
 export const updateBooking = createAsyncThunk(
     'bookings/update',
     async (
-        { bookingId, bookingData }: { bookingId: string; bookingData: any },
+        { bookingId, bookingData }: { bookingId: string; bookingData: Partial<Booking> },
         { rejectWithValue }
     ) => {
         try {
             const response = await adminService.updateBooking(bookingId, bookingData);
-            return response.booking;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update booking');
+            return response.data.booking;
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to update booking');
+            }
+            return rejectWithValue('Failed to update booking');
         }
     }
 );
@@ -71,9 +81,12 @@ export const updateBookingStatus = createAsyncThunk(
     ) => {
         try {
             const response = await adminService.updateBooking(bookingId, { status });
-            return response.booking;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update booking status');
+            return response.data.booking;
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to update booking status');
+            }
+            return rejectWithValue('Failed to update booking status');
         }
     }
 );
@@ -84,8 +97,11 @@ export const deleteBooking = createAsyncThunk(
         try {
             await adminService.deleteBooking(bookingId);
             return bookingId;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to delete booking');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to delete booking');
+            }
+            return rejectWithValue('Failed to delete booking');
         }
     }
 );

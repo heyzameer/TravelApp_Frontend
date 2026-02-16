@@ -1,6 +1,7 @@
 import React from 'react';
 import { Upload, X, AlertCircle } from 'lucide-react';
 import type { ImageFile } from '../../types';
+import { toast } from 'react-hot-toast';
 
 interface CategorizedImageUploadProps {
     images: ImageFile[];
@@ -30,7 +31,7 @@ export const CategorizedImageUpload: React.FC<CategorizedImageUploadProps> = ({
             }));
 
             if (images.length + newFiles.length > maxImages) {
-                alert(`You can upload a maximum of ${maxImages} images`);
+                toast.error(`You can upload a maximum of ${maxImages} images`);
                 return;
             }
 

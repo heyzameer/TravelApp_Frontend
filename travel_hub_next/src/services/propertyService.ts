@@ -58,7 +58,6 @@ export const getPublicProperties = async (page = 1, limit = 12) => {
 
 export const getPropertyById = async (id: string) => {
     try {
-        // Use the public route
         const response = await api.get(`/properties/details/${id}`);
         if (response.data?.data?.property) {
             return mapBackendToFrontend(response.data.data.property);
@@ -69,3 +68,21 @@ export const getPropertyById = async (id: string) => {
         return null;
     }
 };
+
+export const searchProperties = async (query: string) => {
+    try {
+        const response = await api.get(`/properties/search?q=${encodeURIComponent(query)}`);
+        return response.data.data.map(mapBackendToFrontend);
+    } catch (error) {
+        console.error('Search properties error:', error);
+        return [];
+    }
+};
+
+const propertyService = {
+    getPublicProperties,
+    getPropertyById,
+    searchProperties
+};
+
+export default propertyService;

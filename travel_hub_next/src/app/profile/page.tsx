@@ -6,6 +6,8 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { authService } from '@/services/api';
 import { UserCircle, Camera, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link'; // Added Link import
+import { AxiosError } from 'axios'; // Added AxiosError import
 
 export default function ProfilePage() {
     const { user, checkAuth } = useAuth();
@@ -79,11 +81,11 @@ export default function ProfilePage() {
                 await checkAuth();
                 setProfileImage(null);
             }
-        } catch (error: unknown) {
-            const err = error as { response?: { data?: { message?: string } } };
+        } catch (error) { // Changed error type to unknown implicitly, then cast to AxiosError
+            const axiosError = error as AxiosError<{ message?: string }>;
             setMessage({
                 type: 'error',
-                text: err.response?.data?.message || 'Failed to update profile. Please try again.'
+                text: axiosError.response?.data?.message || 'Failed to update profile. Please try again.'
             });
         } finally {
             setIsLoading(false);
@@ -106,10 +108,10 @@ export default function ProfilePage() {
                     <p className="text-slate-500 mb-8">Manage your account information</p>
 
                     {message && (
-                        <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${message.type === 'success'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-red-50 text-red-700 border border-red-200'
-                            }`}>
+                        <div className={`mb - 6 p - 4 rounded - xl flex items - center gap - 3 ${message.type === 'success'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
+                            } `}>
                             {message.type === 'success' ? (
                                 <CheckCircle className="h-5 w-5" />
                             ) : (
@@ -133,6 +135,7 @@ export default function ProfilePage() {
                                                     alt="Profile"
                                                     className="rounded-full object-cover border-4 border-primary/20"
                                                     fill
+                                                    sizes="160px"
                                                 />
                                             </div>
                                         ) : (
@@ -160,6 +163,21 @@ export default function ProfilePage() {
                                         Max size: 5MB
                                     </p>
                                 </div>
+                            </div>
+
+                            {/* My Bookings Quick Access */}
+                            <div className="mt-6 bg-emerald-50 rounded-3xl p-6 border border-emerald-100 shadow-sm">
+                                <h3 className="text-lg font-bold text-emerald-900 mb-2 flex items-center gap-2">
+                                    <CheckCircle className="h-5 w-5 text-emerald-600" />
+                                    Active Trips
+                                </h3>
+                                <p className="text-sm text-emerald-700 mb-4">View and manage your upcoming adventures and booking history.</p>
+                                <Link
+                                    href="/profile/bookings"
+                                    className="block w-full text-center bg-white text-emerald-600 font-bold py-3 rounded-xl border border-emerald-200 hover:bg-emerald-50 transition-colors shadow-sm"
+                                >
+                                    Go to My Trips
+                                </Link>
                             </div>
                         </div>
 
