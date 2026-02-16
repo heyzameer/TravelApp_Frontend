@@ -14,13 +14,11 @@ import {
   CheckCircle,
   Clock,
   BarChart2,
-  AlertCircle,
   Compass,
   LogOut,
   HelpCircle,
   Shield,
   ChevronLeft,
-  Car,
   User,
   House,
 } from "lucide-react";
@@ -65,18 +63,16 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   return (
     <div
       className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-all duration-200 ease-in-out rounded-md mb-1 relative
-        ${
-          isActive
-            ? "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 font-medium shadow-sm"
-            : "text-gray-700 hover:bg-gray-100"
+        ${isActive
+          ? "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 font-medium shadow-sm"
+          : "text-gray-700 hover:bg-gray-100"
         }`}
       onClick={onClick}
     >
       <div className="flex items-center">
         <span
-          className={`${isActive ? "text-blue-600" : "text-gray-500"} ${
-            sidebarOpen ? "mr-3" : ""
-          } ${!sidebarOpen ? "mx-auto" : ""}`}
+          className={`${isActive ? "text-blue-600" : "text-gray-500"} ${sidebarOpen ? "mr-3" : ""
+            } ${!sidebarOpen ? "mx-auto" : ""}`}
         >
           {icon}
         </span>
@@ -118,10 +114,9 @@ const DropdownItem: React.FC<{
   return (
     <div
       className={`px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ml-7 text-sm
-        ${
-          isActive
-            ? "bg-blue-50 text-blue-600 font-medium"
-            : "text-gray-600 hover:bg-gray-100"
+        ${isActive
+          ? "bg-blue-50 text-blue-600 font-medium"
+          : "text-gray-600 hover:bg-gray-100"
         }`}
       onClick={onClick}
     >
@@ -169,15 +164,11 @@ const AdminDashboard: React.FC = () => {
     string | null
   >(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
-    null
-  );
-  const [selectedOrderId,setSelectedOrderId]= useState<string|null>(null)
   const navigate = useNavigate();
 
-//   const handleLogout = () => {
-//     sessionManager.logout();
-//   };
+  //   const handleLogout = () => {
+  //     sessionManager.logout();
+  //   };
 
   // Check screen size and adjust sidebar for mobile responsiveness
   useEffect(() => {
@@ -275,16 +266,16 @@ const AdminDashboard: React.FC = () => {
 
     // If a verified partner is selected for viewing details
     if (selectedVerifiedPartnerId) {
-    //   return (
-    //     <PartnerDetailView
-    //       partnerId={selectedVerifiedPartnerId}
-    //       onBack={() => {
-    //         setSelectedVerifiedPartnerId(null);
-    //         setActiveItem("Partners");
-    //         setActiveSubItem("Partner List");
-    //       }}
-    //     />
-    //   );
+      //   return (
+      //     <PartnerDetailView
+      //       partnerId={selectedVerifiedPartnerId}
+      //       onBack={() => {
+      //         setSelectedVerifiedPartnerId(null);
+      //         setActiveItem("Partners");
+      //         setActiveSubItem("Partner List");
+      //       }}
+      //     />
+      //   );
     }
 
     // Otherwise render based on activeSubItem
@@ -301,16 +292,16 @@ const AdminDashboard: React.FC = () => {
         return (
           <PartnerRequest onViewPartner={(id) => setSelectedPartnerId(id)} />
         );
-    //   case "Property list":
-    //     return <VehicleList onViewVehicle={(id) => setSelectedVehicleId(id)} />;
-    //   case "All Bookings":
-    //     return <AllOrders onViewOrder={(id) => setSelectedOrderId(id)} />;
-    //   case "Pending Bookings":
-    //     return   <PendingOrders onViewOrder={(id)=>setSelectedOrderId(id)}/>;
-    //   case "Completed Bookings":
-    //     return   <CompletedOrders onViewOrder={(id)=>setSelectedOrderId(id)}/>;
-        
-        default:
+      //   case "Property list":
+      //     return <VehicleList onViewVehicle={(id) => setSelectedVehicleId(id)} />;
+      //   case "All Bookings":
+      //     return <AllOrders onViewOrder={(id) => setSelectedOrderId(id)} />;
+      //   case "Pending Bookings":
+      //     return   <PendingOrders onViewOrder={(id)=>setSelectedOrderId(id)}/>;
+      //   case "Completed Bookings":
+      //     return   <CompletedOrders onViewOrder={(id)=>setSelectedOrderId(id)}/>;
+
+      default:
         return (
           <>
             {/* Dashboard content */}
@@ -412,9 +403,8 @@ const AdminDashboard: React.FC = () => {
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar - Always visible */}
       <div
-        className={`${
-          isMobile ? "fixed" : "relative"
-        } z-20 h-full transform transition-all duration-300 ease-in-out 
+        className={`${isMobile ? "fixed" : "relative"
+          } z-20 h-full transform transition-all duration-300 ease-in-out 
         ${sidebarOpen ? "w-64 translate-x-0" : "w-16 translate-x-0"} 
         bg-white shadow-lg flex flex-col`}
       >
@@ -443,9 +433,8 @@ const AdminDashboard: React.FC = () => {
             )}
           </div>
           <button
-            className={`text-gray-500 hover:text-gray-700 transition-colors duration-200 focus:outline-none ${
-              !sidebarOpen && "hidden"
-            }`}
+            className={`text-gray-500 hover:text-gray-700 transition-colors duration-200 focus:outline-none ${!sidebarOpen && "hidden"
+              }`}
             onClick={toggleSidebar}
             title="Toggle sidebar"
           >
@@ -455,9 +444,8 @@ const AdminDashboard: React.FC = () => {
 
         {/* Sidebar content with improved section separation */}
         <div
-          className={`p-3 flex-1 overflow-y-auto ${
-            !sidebarOpen && "overflow-visible"
-          }`}
+          className={`p-3 flex-1 overflow-y-auto ${!sidebarOpen && "overflow-visible"
+            }`}
         >
           <div className="mb-6">
             <SidebarItem
@@ -706,9 +694,8 @@ const AdminDashboard: React.FC = () => {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col overflow-hidden ${
-          isMobile && sidebarOpen ? "ml-64" : ""
-        }`}
+        className={`flex-1 flex flex-col overflow-hidden ${isMobile && sidebarOpen ? "ml-64" : ""
+          }`}
       >
         {/* Top Navigation - Always visible */}
         <header className="bg-white shadow-sm h-16 flex items-center justify-between px-6 z-10">
@@ -737,8 +724,8 @@ const AdminDashboard: React.FC = () => {
             {selectedPartnerId || selectedVerifiedPartnerId
               ? "Deliveryman Details"
               : selectedUserId
-              ? "Customer Details"
-              : activeSubItem || activeItem}
+                ? "Customer Details"
+                : activeSubItem || activeItem}
           </h1>
 
           <div className="flex items-center space-x-4">

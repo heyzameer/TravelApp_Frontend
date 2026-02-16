@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { AuthResponse, LoginCredentials, RegisterCredentials, VerifyOtpCredentials } from '@/types/auth';
+import { AuthResponse, LoginCredentials, RegisterCredentials } from '@/types/auth';
 
-const API_URL = 'http://localhost:3000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -37,6 +37,13 @@ export const authService = {
     },
     getProfile: async () => {
         return api.get<AuthResponse>('/auth/profile');
+    },
+    updateProfile: async (data: FormData) => {
+        return api.put<AuthResponse>('/auth/profile', data, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
     },
     resendUserOtp: async (data: { email: string; type: string }) => {
         return api.post<AuthResponse>('/auth/resend-otp', data);

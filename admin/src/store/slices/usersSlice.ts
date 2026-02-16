@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { User } from '../../types';
 import { adminService } from '../../services/admin';
+import { AxiosError } from 'axios';
 
 interface UsersState {
     users: User[];
@@ -40,8 +41,11 @@ export const fetchAllUsers = createAsyncThunk(
             );
             console.log('fetchAllUsers:', response);
             return response;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch users');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch users');
+            }
+            return rejectWithValue('Failed to fetch users');
         }
     }
 );
@@ -53,22 +57,28 @@ export const fetchUserById = createAsyncThunk(
     async (userId: string, { rejectWithValue }) => {
         try {
             const response = await adminService.getUserById(userId);
-            return response.user;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch user');
+            return response.data?.user || response.user;
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to fetch user');
+            }
+            return rejectWithValue('Failed to fetch user');
         }
     }
 );
 
 export const updateUser = createAsyncThunk(
     'users/update',
-    async ({ userId, userData }: { userId: string; userData: any }, { rejectWithValue }) => {
+    async ({ userId, userData }: { userId: string; userData: Partial<User> }, { rejectWithValue }) => {
         try {
             const response = await adminService.updateUser(userId, userData);
             console.log('updateUser response:', response);
             return response.data.user;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update user');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to update user');
+            }
+            return rejectWithValue('Failed to update user');
         }
     }
 );
@@ -79,8 +89,11 @@ export const deleteUser = createAsyncThunk(
         try {
             await adminService.deleteUser(userId);
             return userId;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to delete user');
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                return rejectWithValue(error.response?.data?.message || 'Failed to delete user');
+            }
+            return rejectWithValue('Failed to delete user');
         }
     }
 );
@@ -106,7 +119,7 @@ const usersSlice = createSlice({
             .addCase(fetchAllUsers.fulfilled, (state, action) => {
                 console.log('fetchAllUsers fulfilled:', action.payload);
                 state.isLoading = false;
-                state.users = action.payload.data.users.data  || [];
+                state.users = action.payload.data.users.data || [];
                 state.pagination = {
                     page: action.payload.pagination?.page || 1,
                     limit: action.payload.pagination?.limit || 10,

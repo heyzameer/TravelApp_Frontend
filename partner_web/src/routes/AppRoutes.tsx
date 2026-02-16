@@ -1,10 +1,11 @@
 import { Suspense, lazy } from 'react';
-import { Route, Routes, Navigate } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import PartnerRoutes from './PartnerRoutes';
 
 const PartnerLoginPage = lazy(() => import('../pages/auth/PartnerLogin'));
 const PartnerRegisterPage = lazy(() => import('../pages/auth/PartnerRegister'));
 const PartnerVerifyOtpPage = lazy(() => import('../pages/auth/PartnerVerifyOtp'));
+const LandingPage = lazy(() => import('../pages/LandingPage'));
 
 // Fallback UI while components load
 const Loader = () => (
@@ -17,6 +18,9 @@ const AppRoutes = () => {
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
+        {/* Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* Auth Routes */}
         <Route path="/partner/login" element={<PartnerLoginPage />} />
         <Route path="/partner/register" element={<PartnerRegisterPage />} />
@@ -24,9 +28,6 @@ const AppRoutes = () => {
 
         {/* Partner Dashboard Routes */}
         <Route path="/partner/*" element={<PartnerRoutes />} />
-
-        {/* Redirect Root to Login */}
-        <Route path="/" element={<Navigate to="/partner/login" replace />} />
 
         {/* Fallback Route */}
         <Route path="*" element={<div className="flex items-center justify-center min-h-screen text-xl">Page Not Found</div>} />

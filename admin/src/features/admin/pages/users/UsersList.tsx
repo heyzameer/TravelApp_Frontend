@@ -22,7 +22,7 @@ const UsersList: React.FC = () => {
         try {
             await dispatch(updateUser({ userId: id, userData: { isActive: newStatus } })).unwrap();
             toast.success(newStatus ? 'User activated' : 'User deactivated');
-        } catch (err) {
+        } catch {
             toast.error('Failed to update user status');
         }
     };
@@ -32,7 +32,7 @@ const UsersList: React.FC = () => {
             try {
                 await dispatch(deleteUser(id)).unwrap();
                 toast.success('User deleted successfully');
-            } catch (err) {
+            } catch {
                 toast.error('Failed to delete user');
             }
         }

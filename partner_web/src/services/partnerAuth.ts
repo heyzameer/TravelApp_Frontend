@@ -1,13 +1,17 @@
 import api from './api';
-import type { ApiResponse, PartnerRegistrationData, PartnerProfile } from '../types';
+import type {
+    ApiResponse, User, Property, VerificationStatusResponse,
+    DocumentUrls, PropertyOnboardingStatus, PartnerRegistrationData, PartnerProfile,
+    VerificationResponse
+} from '../types';
 
 class PartnerAuthService {
     private readonly TOKEN_KEY = 'authToken';
     private readonly REFRESH_TOKEN_KEY = 'refreshToken';
 
-    async registerPartner(data: PartnerRegistrationData): Promise<any> {
+    async registerPartner(data: PartnerRegistrationData): Promise<{ user: User; accessToken: string; refreshToken: string }> {
         const response = await api.post<ApiResponse<{
-            user: any;
+            user: User;
             accessToken: string;
             refreshToken: string;
         }>>('/partner/register-partner', data);
@@ -22,9 +26,9 @@ class PartnerAuthService {
         return response.data;
     }
 
-    async verifyLoginOtp(email: string, otp: string): Promise<any> {
+    async verifyLoginOtp(email: string, otp: string): Promise<{ user: User; accessToken: string; refreshToken: string }> {
         const response = await api.post<ApiResponse<{
-            user: any;
+            user: User;
             accessToken: string;
             refreshToken: string;
         }>>('/partner/verify-login-otp', { email, otp });
@@ -39,13 +43,74 @@ class PartnerAuthService {
         return response.data.data;
     }
 
-    async registerProperty(formData: FormData): Promise<any> {
-        const response = await api.post<ApiResponse<any>>('/partners/register-prop', formData, {
+    async verifyAdhar(formData: FormData): Promise<VerificationResponse> {
+        const response = await api.post<ApiResponse<VerificationResponse>>('/partner/verify-adhar', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        return response.data;
+        return response.data.data;
+    }
+
+    async getAadhaarDocuments(): Promise<DocumentUrls> {
+        const response = await api.get<ApiResponse<DocumentUrls>>('/partner/aadhaar-documents');
+        return response.data.data;
+    }
+
+    async createProperty(data: Partial<Property>): Promise<Property> {
+        const response = await api.post<ApiResponse<{ property: Property }>>('/properties', data);
+        return response.data.data.property;
+    }
+
+    async getPartnerProperties(): Promise<Property[]> {
+        const response = await api.get<ApiResponse<{ properties: Property[] }>>('/properties/partner-properties');
+        return response.data.data.properties || [];
+    }
+
+    async getPropertyOnboardingStatus(id: string): Promise<PropertyOnboardingStatus> {
+        const response = await api.get<ApiResponse<PropertyOnboardingStatus>>(`/properties/${id}/onboarding-status`);
+        return response.data.data;
+    }
+
+    async updatePropertyDetails(id: string, data: Partial<Property>): Promise<Property> {
+        const response = await api.patch<ApiResponse<{ property: Property }>>(`/properties/${id}/details`, data);
+        return response.data.data.property;
+    }
+
+    async uploadPropertyOwnership(id: string, formData: FormData): Promise<Property> {
+        const response = await api.patch<ApiResponse<{ property: Property }>>(`/properties/${id}/ownership`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data.data.property;
+    }
+
+    async uploadPropertyTax(id: string, formData: FormData): Promise<Property> {
+        const response = await api.patch<ApiResponse<{ property: Property }>>(`/properties/${id}/tax`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data.data.property;
+    }
+
+    async updatePropertyBanking(id: string, data: Partial<Property['bankingDetails']>): Promise<Property> {
+        const response = await api.patch<ApiResponse<{ property: Property }>>(`/properties/${id}/banking`, data);
+        return response.data.data.property;
+    }
+
+    async uploadPropertyImages(id: string, formData: FormData): Promise<Property> {
+        const response = await api.patch<ApiResponse<{ property: Property }>>(`/properties/${id}/images`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data.data.property;
+    }
+
+    async getVerificationStatus(): Promise<VerificationStatusResponse> {
+        const response = await api.get<ApiResponse<VerificationStatusResponse>>('/partner/verification-status');
+        return response.data.data;
+    }
+
+    async getProfilePicture(): Promise<string> {
+        const response = await api.get<ApiResponse<string>>('/partner/profile-picture');
+        return response.data.data;
     }
 
     private setTokens(accessToken: string, refreshToken: string): void {

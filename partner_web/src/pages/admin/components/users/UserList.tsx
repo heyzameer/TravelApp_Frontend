@@ -1,39 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Edit2, Eye, Trash2, X, Users, TrendingUp, DollarSign, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Trash2, Users, TrendingUp, DollarSign, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { adminService } from '../../../../services/admin';
 import type { User } from '../../../../types';
+import ConfirmModal from '../../../../components/common/ConfirmModal';
 
 
 
 
 
-const UserList = ({ onViewUser = () => {} }) => {
+interface UserListProps {
+  onViewUser?: (id: string) => void;
+}
+
+const UserList: React.FC<UserListProps> = ({ onViewUser = () => { } }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-   const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+  });
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const pagination = { page: 1, limit: 10 };
       const filter = { role: 'customer', };
 
-      const response = await adminService.getAllUsers(pagination, filter);      
-      setUsers(response.data.users.data || []);
+      const response = await adminService.getAllUsers(pagination, filter);
+      setUsers(response.users || []);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('Failed to fetch users. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleStatusToggle = async (id: string, currentStatus: boolean) => {
     const newStatus = !currentStatus;
@@ -46,9 +62,9 @@ const UserList = ({ onViewUser = () => {} }) => {
       const response = await adminService.updateUser(id, payload);
 
       // Try to reconcile with API response
-      const updatedUser = response && (response.user || response);
-      if (updatedUser) {
-        const apiActive = (updatedUser as any).isActive;
+      const updatedUser = response;
+      if (response) {
+        const apiActive = updatedUser.isActive; // Corrected line
         if (typeof apiActive === 'boolean') {
           setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updatedUser, isActive: apiActive } : u));
         } else {
@@ -65,22 +81,28 @@ const UserList = ({ onViewUser = () => {} }) => {
     }
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(user => user.id !== id));
-    }
+  const handleDelete = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete User',
+      message: 'Are you sure you want to delete this user? This action cannot be undone.',
+      onConfirm: () => {
+        setUsers(users.filter(user => user.id !== id));
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
 
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.phone?.includes(searchTerm) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalOrders = users.reduce((sum, user) => sum + user.totalOrders, 0);
-  const totalRevenue = users.reduce((sum, user) => sum + user.totalAmount, 0);
+  const totalOrders = users.reduce((sum, user) => sum + (user.totalOrders || 0), 0);
+  const totalRevenue = users.reduce((sum, user) => sum + (user.totalAmount || 0), 0);
   const activeUsers = users.filter(u => u.isActive).length;
 
   const SkeletonCard = () => (
@@ -158,7 +180,7 @@ const UserList = ({ onViewUser = () => {} }) => {
             animation: slideUp 0.5s ease-out;
           }
         `}</style>
-        
+
         {/* Header Skeleton */}
         <div className="mb-8 animate-pulse">
           <div className="h-10 bg-gray-300 rounded w-64 mb-2"></div>
@@ -256,7 +278,7 @@ const UserList = ({ onViewUser = () => {} }) => {
           animation: slideUp 0.5s ease-out;
         }
       `}</style>
-      
+
       {/* Header */}
       <div className="mb-8 animate-slideUp">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
@@ -297,7 +319,7 @@ const UserList = ({ onViewUser = () => {} }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm font-medium mb-1">Total Revenue</p>
-              <p className="text-3xl font-bold text-gray-800">₹{totalRevenue.toFixed(2) ||0}</p>
+              <p className="text-3xl font-bold text-gray-800">₹{totalRevenue.toFixed(2) || 0}</p>
               <p className="text-emerald-600 text-sm mt-1 font-semibold">Lifetime value</p>
             </div>
             <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4">
@@ -320,7 +342,7 @@ const UserList = ({ onViewUser = () => {} }) => {
                 {filteredUsers.length} {filteredUsers.length === 1 ? 'customer' : 'customers'} found
               </p>
             </div>
-            
+
             <div className="relative">
               <input
                 type="text"
@@ -350,7 +372,7 @@ const UserList = ({ onViewUser = () => {} }) => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredUsers.map((user, index) => (
-                
+
                 <tr key={user.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all cursor-pointer" onClick={() => onViewUser(user.id)}>
                   <td className="py-4 px-6">
                     <span className="text-gray-600 font-medium">{index + 1}</span>
@@ -406,8 +428,8 @@ const UserList = ({ onViewUser = () => {} }) => {
                   </td>
                   <td className="py-4 px-6 ">
                     <div className="inline-flex items-center px-3 py-1">
-                      
-                      <button 
+
+                      <button
                         onClick={() => handleDelete(user.id)}
                         className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all hover:scale-110"
                         title="Delete"
@@ -429,7 +451,15 @@ const UserList = ({ onViewUser = () => {} }) => {
         )}
       </div>
 
-      
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        variant="danger"
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

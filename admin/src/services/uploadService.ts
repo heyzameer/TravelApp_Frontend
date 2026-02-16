@@ -31,20 +31,38 @@ export class UploadService {
           }
         }
       });
-      
+
       return response.data;
     } catch (error) {
       if ((error as ErrorResponse).response?.data.message === 'ECONNABORTED') {
         throw new Error('Upload timeout - please check your internet connection and try again');
       }
-      
+
       if ((error as ErrorResponse).response?.data.statusCode === 413) {
         throw new Error('Files are too large - please reduce file sizes and try again');
       }
-      
-      
-      
+
       throw error;
     }
   }
+
+  async uploadImage(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Assuming generic upload endpoint returns { data: { url: string } } or similar
+    // using /upload endpoint
+    const response = await api.post<{ data: { url: string } } | { url: string }>('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+
+    // Handle different response structures gracefully
+    const data = response.data as Record<string, unknown>;
+    const nested = data.data as Record<string, unknown> | undefined;
+    return (data.url as string) || (nested?.url as string) || (nested as unknown as string);
+  }
 }
+
+export default new UploadService();

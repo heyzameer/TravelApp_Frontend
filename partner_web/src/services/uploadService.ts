@@ -1,11 +1,6 @@
-import type { ErrorResponse } from "../types";
+import type { ApiResponse, UploadProgress } from "../types";
+export type { UploadProgress };
 import api from "./api";
-
-export interface UploadProgress {
-  loaded: number;
-  total: number;
-  percentage: number;
-}
 
 export class UploadService {
   static async uploadWithProgress<T>(
@@ -15,7 +10,7 @@ export class UploadService {
     timeout: number = 180000 // 3 minutes default
   ): Promise<T> {
     try {
-      const response = await api.post<T>(url, formData, {
+      const response = await api.post<ApiResponse<T>>(url, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -31,20 +26,28 @@ export class UploadService {
           }
         }
       });
-      
-      return response.data;
+
+      return response.data.data;
     } catch (error) {
-      if ((error as ErrorResponse).response?.data.message === 'ECONNABORTED') {
+      const err = error as {
+        code?: string;
+        response?: {
+          status?: number;
+          data?: { message?: string }
+        };
+        message?: string;
+      };
+
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         throw new Error('Upload timeout - please check your internet connection and try again');
       }
-      
-      if ((error as ErrorResponse).response?.data.statusCode === 413) {
+
+      if (err.response?.status === 413) {
         throw new Error('Files are too large - please reduce file sizes and try again');
       }
-      
-      
-      
-      throw error;
+
+      const errorMessage = err.response?.data?.message || err.message || 'Upload failed';
+      throw new Error(errorMessage);
     }
   }
 }

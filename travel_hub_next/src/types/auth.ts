@@ -3,11 +3,13 @@ export interface User {
     fullName: string;
     email: string;
     phone?: string;
+    profilePicture?: string;
     role: 'customer' | 'partner' | 'admin';
     isActive: boolean;
     isVerified: boolean;
     createdAt: string;
     updatedAt: string;
+    wishlist?: string[];
     // Partner specific fields (optional as they might be merged or separate)
     partnerId?: string;
     verificationStatus?: {

@@ -1,43 +1,21 @@
-import Link from 'next/link';
-import styles from './home.module.css';
-
-const destinations = [
-  { id: 1, name: 'Paris, France', image: '/images/paris.png', description: 'Experience the city of love.' },
-  { id: 2, name: 'Bali, Indonesia', image: '/images/bali.png', description: 'Tropical paradise awaits.' },
-  { id: 3, name: 'Kyoto, Japan', image: '/images/kyoto.png', description: 'Discover ancient traditions.' },
-];
+import { Hero } from '@/components/home/Hero';
+import { DestinationCarousel } from '@/components/home/DestinationCarousel';
+import { FeaturedProperties } from '@/components/home/FeaturedProperties';
 
 export default function Home() {
   return (
-    <main>
-      <section className={styles.hero}>
-        <div className={styles.heroContent}>
-          <h1 className={styles.title}>Wanderlust Awaits</h1>
-          <p className={styles.subtitle}>Discover the world's most breathtaking destinations.</p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <Link href="/auth/signup" className="btn btn-primary" style={{ fontSize: '1.2rem', padding: '1rem 2rem' }}>
-              Start Journey
-            </Link>
-            <Link href="/partner/login" className="btn" style={{ fontSize: '1.2rem', padding: '1rem 2rem', background: 'white', color: 'black' }}>
-              Partner Login
-            </Link>
-          </div>
-        </div>
-      </section>
+    <main className="min-h-screen bg-white" suppressHydrationWarning>
+      <Hero />
+      <DestinationCarousel />
+      <FeaturedProperties />
 
-      <section className={styles.destinations}>
-        <h2 className={styles.sectionTitle}>Popular Destinations</h2>
-        <div className={styles.grid}>
-          {destinations.map((dest) => (
-            <div key={dest.id} className={styles.card}>
-              <img src={dest.image} alt={dest.name} className={styles.cardImage} />
-              <div className={styles.cardContent}>
-                <h3 className={styles.cardTitle}>{dest.name}</h3>
-                <p className={styles.cardData}>{dest.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Newsletter / Footer CTA */}
+      <section className="py-24 bg-gray-900 text-center px-4" suppressHydrationWarning>
+        <h2 className="text-3xl md:text-5xl font-black text-white mb-6">Ready to Explore?</h2>
+        <p className="text-gray-400 text-lg mb-10 max-w-2xl mx-auto">Join thousands of travelers finding their perfect nature stays with TravelHub.</p>
+        <button className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 px-10 rounded-full text-lg shadow-xl shadow-emerald-500/20 transition-all active:scale-95">
+          Start Your Journey
+        </button>
       </section>
     </main>
   );

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/services/api';
 import styles from '../auth.module.css';
+import Image from 'next/image';
 
 export default function SignUpPage() {
     const router = useRouter();
@@ -34,8 +35,9 @@ export default function SignUpPage() {
                 // Redirect to verify page with email
                 router.push(`/auth/verify?email=${encodeURIComponent(formData.email)}&type=email_verification`);
             }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Registration failed. Please try again.');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            setError(error.response?.data?.message || 'Registration failed. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -114,9 +116,15 @@ export default function SignUpPage() {
                 <button
                     type="button"
                     className={styles.googleBtn}
-                    onClick={() => window.location.href = 'http://localhost:3000/api/v1/auth/google'}
+                    onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/auth/google`}
                 >
-                    <img src="https://www.google.com/favicon.ico" alt="Google" width={20} height={20} />
+                    <div className="relative w-5 h-5">
+                        <Image
+                            src="https://www.google.com/favicon.ico"
+                            alt="Google"
+                            fill
+                        />
+                    </div>
                     Continue with Google
                 </button>
 

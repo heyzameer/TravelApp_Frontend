@@ -1,3 +1,5 @@
+
+
 export const UserRole = {
   CUSTOMER: 'customer',
   DELIVERY_PARTNER: 'delivery_partner',
@@ -26,14 +28,58 @@ export interface User {
   permissions: string[];
   isEmailVerified: boolean;
   profilePicture?: string;
+  dateOfBirth?: string;
   isActive: boolean;
   createdAt: Date;
   lastLogin?: Date;
   loyaltyPoints?: number;
   walletBalance?: number;
   bookings?: Booking[]; // Changed from order to bookings
-  totalBookings?: number; // For admin display
+  totalOrders?: number; // For admin display
   totalAmount?: number; // For admin display
+  totalProperties?: number; // For partner display
+
+  // Partner specific fields
+  isVerified?: boolean;
+  aadhaarVerified?: boolean;
+  aadharStatus?: 'not_submitted' | 'pending' | 'manual_review' | 'verified' | 'rejected' | 'approved';
+  aadharRejectionReason?: string;
+  personalDocuments?: {
+    aadharFront?: string;
+    aadharBack?: string;
+    profilePicture?: string;
+    aadharStatus?: string;
+    aadharRejectionReason?: string;
+    [key: string]: unknown;
+  };
+}
+
+export interface VerificationStatusResponse {
+  aadharStatus: 'not_submitted' | 'manual_review' | 'approved' | 'rejected';
+  isVerified: boolean;
+  canAddProperty: boolean;
+  documents: {
+    aadharFront: boolean;
+    aadharBack: boolean;
+    profilePicture: boolean;
+  };
+}
+
+export interface DocumentUrls {
+  aadharFront?: string;
+  aadharBack?: string;
+  profilePicture?: string;
+}
+
+export interface SocketVerificationApprovedEvent {
+  partnerId: string;
+  email: string;
+}
+
+export interface SocketVerificationRejectedEvent {
+  partnerId: string;
+  email: string;
+  reason: string;
 }
 export interface AuthState {
   user: User | null;
@@ -133,6 +179,10 @@ export interface PartnerUser {
   dateOfBirth: string;
   profilePicture?: string;
   profileImage?: string;
+  isVerified: boolean;
+  mobileNumber?: string;
+  vehicleType?: string;
+  registrationNumber?: string;
 
   personalDocuments: {
     aadharFront: string;
@@ -165,7 +215,6 @@ export interface PartnerUser {
 
   isAvailable: boolean;
   isActive: boolean;
-  isVerified: boolean;
   status: 'pending' | 'verified' | 'rejected';
 
   hasPendingRequest: boolean;
@@ -191,6 +240,35 @@ export interface PartnerUser {
   lastLoginAt?: string;
 }
 
+export type Partner = PartnerUser;
+
+export interface Order {
+  _id: string;
+  customerId: string;
+  driverId?: string;
+  propertyId: string;
+  roomId: string;
+  checkIn: Date;
+  checkOut: Date;
+  status: 'completed' | 'pending_payment' | 'payment_completed' | 'confirmed' | 'rejected' | 'checked_in' | 'checked_out' | 'cancelled' | 'Pending' | 'Out For Delivery' | 'Delivered';
+  totalPrice: number;
+  totalAmount: number;
+  paymentMethod: string;
+  createdAt: string;
+  updatedAt: string;
+  customerName?: string;
+  customerPhone?: string;
+  driverName?: string;
+  driverPhone?: string;
+  vehicleName?: string;
+  distance?: number;
+  estimatedTime?: string;
+  deliveryType?: string;
+  pickupAddress?: { street: string };
+  dropoffAddress?: { street: string };
+  branch?: string;
+}
+
 export interface PartnerRegistrationData {
   fullName: string;
   email: string;
@@ -205,7 +283,7 @@ export interface PartnerProfile {
   phone: string;
   personalDocuments: {
     aadharStatus: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   status: string;
   totalOrders: number;
@@ -334,56 +412,301 @@ export interface AddressResponse {
   address: Address | null;
 }
 
-export interface Property {
+export interface VehicleType {
   _id: string;
-  id?: string;
   name: string;
   description?: string;
-  address?: string;
-  location?: {
-    coordinates: number[];
-    address?: string;
+  basePrice: number;
+  pricePerKm: number;
+  maxWeight: number;
+  maxVolume?: number;
+  imageUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Assuming 'api' and 'ApiResponse' are defined elsewhere
+// This looks like part of an AdminService class
+
+export interface CreateVehicleInput {
+  name: string;
+  description?: string;
+  basePrice: number;
+  pricePerKm: number;
+  maxWeight: number;
+  maxVolume?: number;
+  imageUrl?: string;
+}
+
+export interface Property {
+  _id: string;
+  propertyName: string;
+  propertyType: string;
+  description?: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
   };
-  pricePerNight?: number;
-  price?: number;
-  images?: string[];
+  location: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  pricePerNight: number;
+  totalRooms: number;
+  availableRooms: number;
+  maxGuests: number;
+  images: (string | {
+    url: string;
+    category: string;
+    label?: string;
+  })[];
+  coverImage?: string;
   ownerId: string;
-  ownerName?: string;
-  owner?: {
-    fullName: string;
-    profilePicture?: string;
-  };
-  isActive?: boolean;
-  isAvailable?: boolean;
-  status: string;
+
+  // Onboarding Flags
+  propertyDetailsCompleted: boolean;
+  ownershipDocumentsCompleted: boolean;
+  taxDocumentsCompleted: boolean;
+  bankingDetailsCompleted: boolean;
+  imagesUploaded: boolean;
+  onboardingCompleted: boolean;
   rating?: number;
   reviewsCount?: number;
-  amenities?: string[];
+
+  // Verification
+  isVerified: boolean;
+  isActive: boolean;
+  verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
+  overallRejectionReason?: string;
+  propertyId?: string;
+  submittedForVerificationAt?: string;
+  verifiedAt?: string;
+  destinationId?: string | { _id: string; name: string };
+  ownershipDocuments?: {
+    ownershipProof?: string;
+    ownerKYC?: string;
+    ownershipProofStatus: string;
+    ownerKYCStatus: string;
+    rejectionReason?: string;
+  };
+  taxDocuments?: {
+    gstNumber?: string;
+    panNumber?: string;
+    gstCertificate?: string;
+    panCard?: string;
+    taxStatus: string;
+    rejectionReason?: string;
+  };
+  bankingDetails?: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    upiId?: string;
+    bankingStatus: string;
+    rejectionReason?: string;
+  };
+}
+
+export interface Room {
+  _id: string;
+  propertyId: string;
+  roomName?: string;
+  roomNumber: string;
+  roomType: string;
+  sharingType: string;
+  baseOccupancy: number;
+  minOccupancy: number;
+  maxOccupancy: number;
+  basePricePerNight: number;
+  extraPersonCharge: number;
+  amenities: string[];
+  bedConfiguration: string;
+  hasSelfCooking: boolean;
+  images: {
+    url: string;
+    category: string;
+    label?: string;
+  }[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Activity {
+  _id: string;
+  propertyId: string;
+  name: string;
+  description: string;
+  category?: string; // e.g. 'Water', 'Resort', etc.
+  duration: number; // minutes
+  pricePerPerson: number;
+  maxParticipants: number;
+  activityType: 'property_based' | 'platform_level';
+  availableTimeSlots: string[];
+  requiresBooking?: boolean;
+  isActive: boolean;
+  images?: string[];
+}
+
+export interface MealPlan {
+  _id: string;
+  propertyId: string;
+  name: string;
+  description: string;
+  mealsIncluded: string[];
+  pricePerPersonPerDay: number;
+  isActive: boolean;
+}
+
+export interface Package {
+  _id: string;
+  propertyId: string;
+  packageName: string;
+  description: string;
+  roomTypes: string[];
+  numberOfNights: number;
+  mealPlanId?: string | { _id: string; name: string };
+  includedActivities: { activityId: string | { _id: string; name: string }; sessionsIncluded: number }[];
+  packagePricePerPerson: number;
+  minPersons: number;
+  maxPersons: number;
+  validFrom: string;
+  validUntil: string;
+  isActive: boolean;
+  images?: string[];
+}
+
+export interface Destination {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  coverImage: string;
+  isActive: boolean;
+}
+
+export interface PropertyOnboardingStatus {
+  step: number;
+  isComplete: boolean;
+  progress: number;
+  nextStep: string;
+  completedSteps: {
+    details: boolean;
+    ownership: boolean;
+    tax: boolean;
+    banking: boolean;
+    images: boolean;
+  };
 }
 
 export interface Booking {
-  id: string;
-  createdAt: string;
-  propertyId?: string;
-  propertyName?: string;
-  checkInDate?: string;
+  _id: string;
+  bookingId: string;
+  userId: User | string;
+  partnerId: string;
+  propertyId: Property | string;
+  bookingType: 'accommodation' | 'activity_only' | 'package';
+
+  checkInDate: string;
   checkOutDate?: string;
-  numberOfGuests?: number;
-  // Legacy fields for backward compatibility
-  pickupAddress?: Address;
-  dropoffAddress?: Address;
-  totalAmount: number;
-  status: string;
-  estimatedTime?: string;
-  distance?: number;
-  paymentMethod?: string;
-  vehicleName?: string;
-  driverId?: string;
-  driverName?: string;
-  driver?: Driver;
+  numberOfNights?: number;
+
+  totalGuests: number;
+  guestDetails: {
+    name: string;
+    age: number;
+    gender: 'Male' | 'Female' | 'Other';
+  }[];
+
+  roomBookings: {
+    roomId: string;
+    roomNumber?: string;
+    numberOfGuests: number;
+    pricePerNight: number;
+    totalRoomPrice: number;
+  }[];
+
+  mealPlanId?: string;
+  mealPlanPrice?: number;
+
+  activityBookings?: {
+    activityId: string;
+    date: string;
+    timeSlot?: string;
+    participants: number;
+    pricePerPerson: number;
+    totalActivityPrice: number;
+  }[];
+
+  roomTotalPrice: number;
+  mealTotalPrice: number;
+  activityTotalPrice: number;
+  packageDiscount: number;
+  finalPrice: number;
+
+  paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
+  paymentId?: string;
+
+  status: 'pending_payment' | 'payment_completed' | 'confirmed' | 'rejected' | 'checked_in' | 'checked_out' | 'completed' | 'cancelled';
+
+  partnerApprovalStatus: 'pending' | 'approved' | 'rejected';
+  approvedAt?: string;
+  rejectionReason?: string;
+  rejectedAt?: string;
+
+  cancellationReason?: string;
+
+  refundStatus?: 'not_requested' | 'requested' | 'approved' | 'rejected' | 'processed';
+  refundAmount?: number;
+  refundRequestedAt?: string;
+  refundProcessedAt?: string;
+  refundReason?: string;
+
+  bookedAt: string;
+  confirmedAt?: string;
+  cancelledAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface Driver {
-  fullName: string;
-  mobileNumber: number;
+export interface CustomPricing {
+  basePricePerNight: number;
+  extraPersonCharge: number;
+}
+
+export interface CalendarDay {
+  date: string;
+  isBlocked: boolean;
+  blockedReason?: 'booking' | 'maintenance' | 'manual';
+  bookingId?: string;
+  pricing: CustomPricing;
+}
+
+export interface AvailabilityCalendarResponse {
+  roomId: string;
+  month: number;
+  year: number;
+  calendar: CalendarDay[];
+}
+
+export interface UploadProgress {
+  loaded: number;
+  total: number;
+  percentage: number;
+}
+
+export interface VerificationResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface ImageFile {
+  file: File | null;
+  preview: string;
+  category: string;
+  label: string;
 }

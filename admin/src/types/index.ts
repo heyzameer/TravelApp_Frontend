@@ -6,6 +6,17 @@ export const UserRole = {
 
 export type UserRole = typeof UserRole[keyof typeof UserRole];
 
+export type AadhaarStatus = 'not_submitted' | 'manual_review' | 'approved' | 'rejected';
+
+export interface VerificationActionPayload {
+  partnerId?: string;
+  propertyId?: string;
+  action: 'approve' | 'reject';
+  reason?: string;
+  section?: 'ownership' | 'tax' | 'banking' | 'final';
+}
+
+
 export interface ErrorResponse {
   response: {
     data: {
@@ -130,6 +141,7 @@ export interface PartnerUser {
   email: string;
   phone: string;
   dateOfBirth: string;
+  gender?: string;
   profilePicture?: string;
   profileImage?: string;
 
@@ -140,7 +152,11 @@ export interface PartnerUser {
     panBack: string;
     licenseFront: string;
     licenseBack: string;
-    aadharStatus: 'pending' | 'approved' | 'rejected';
+    aadharStatus: 'not_submitted' | 'manual_review' | 'approved' | 'rejected';
+    aadharFrontUrl?: string; // Signed URL
+    aadharBackUrl?: string; // Signed URL
+    aadharNumber?: string;
+    rejectionReason?: string;
     panStatus: 'pending' | 'approved' | 'rejected';
     licenseStatus: 'pending' | 'approved' | 'rejected';
   };
@@ -297,47 +313,113 @@ export interface AddressResponse {
 
 export interface Property {
   _id: string;
-  id?: string;
-  name: string;
-  description?: string;
-  address?: string;
-  location?: {
-    coordinates: number[];
-    address?: string;
+  propertyId: string;
+  partnerId: string;
+  propertyName: string;
+  propertyType: 'hotel' | 'homestay' | 'apartment' | 'resort' | 'villa';
+  description: string;
+  amenities: string[];
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
   };
+  location: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  ownershipDocuments?: {
+    ownershipProof?: string;
+    ownershipProofStatus: 'pending' | 'approved' | 'rejected' | 'incomplete';
+    ownerKYC?: string;
+    ownerKYCStatus: 'pending' | 'approved' | 'rejected' | 'incomplete';
+    rejectionReason?: string;
+  };
+  taxDocuments?: {
+    gstNumber?: string;
+    gstCertificate?: string;
+    panNumber?: string;
+    panCard?: string;
+    taxStatus: 'pending' | 'approved' | 'rejected' | 'incomplete';
+    rejectionReason?: string;
+  };
+  bankingDetails?: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    upiId?: string;
+    bankingStatus: 'pending' | 'approved' | 'rejected' | 'incomplete';
+    rejectionReason?: string;
+  };
+  images: {
+    url: string;
+    category: string;
+    label?: string;
+  }[];
+  coverImage?: string;
   pricePerNight?: number;
-  price?: number;
-  images?: string[];
-  ownerId: string;
-  ownerName?: string;
-  owner?: {
+  maxGuests?: number;
+  totalRooms?: number;
+  availableRooms?: number;
+  isActive: boolean;
+  isVerified: boolean;
+  verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
+  onboardingCompleted: boolean;
+  rating?: number;
+  reviewsCount?: number;
+  partner?: {
     fullName: string;
     profilePicture?: string;
   };
-  isActive?: boolean;
-  isAvailable?: boolean;
-  status: string;
-  rating?: number;
-  reviewsCount?: number;
-  amenities?: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Booking {
+  _id: string;
   id: string;
+  bookingId: string;
   createdAt: string;
-  propertyId?: string;
+  propertyId?: {
+    _id: string;
+    propertyName: string;
+    coverImage: string;
+    location: {
+      address: string;
+    };
+  };
+  userId?: {
+    _id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+  };
   propertyName?: string;
   checkInDate?: string;
   checkOutDate?: string;
   numberOfGuests?: number;
+  guestDetails?: {
+    name: string;
+    age: number;
+    gender: string;
+  }[];
+  finalPrice: number;
+  status: string;
+  bookingType?: string;
+  paymentStatus?: string;
+  paymentId?: string;
+  paymentMethod?: string;
+  partnerApprovalStatus?: string;
+  refundStatus?: string;
+  bookedAt?: string;
   // Legacy fields for backward compatibility
   pickupAddress?: Address;
   dropoffAddress?: Address;
-  totalAmount: number;
-  status: string;
+  totalAmount?: number;
   estimatedTime?: string;
   distance?: number;
-  paymentMethod?: string;
   vehicleName?: string;
   driverId?: string;
   driverName?: string;

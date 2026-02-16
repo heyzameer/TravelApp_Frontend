@@ -13,7 +13,7 @@ class AuthService {
       refreshToken: string;
     }>>('/auth/login', credentials);
     console.log('response in auth', response);
-    
+
 
     const { user, accessToken, refreshToken } = response.data.data;
     this.setRefreshToken(refreshToken);
@@ -28,7 +28,7 @@ class AuthService {
       refreshToken: string;
     }>>('/admin/login', { email, password });
     console.log('Admin login response:', response);
-    
+
     const { user, accessToken, refreshToken } = response.data.data;
     this.setRefreshToken(refreshToken);
     this.setTokens(accessToken);
@@ -41,8 +41,8 @@ class AuthService {
       accessToken: string;
       refreshToken: string;
     }>>('/auth/register', userData);
-    console.log('rwsiatration ',response);
-    
+    console.log('rwsiatration ', response);
+
 
     const { user, accessToken, refreshToken } = response.data.data;
     this.setRefreshToken(refreshToken);
@@ -88,20 +88,20 @@ class AuthService {
       return response.data.data;
     } catch (error) {
       console.log('Failed to fetch current user:', error);
-      
+
       this.clearTokens();
       return null;
     }
   }
 
   async refreshAccessToken(): Promise<string | null> {
-    
+
     try {
       const response = await api.post<ApiResponse<{
         accessToken: string;
       }>>('/auth/refresh-token');
       console.log('Token refresh response:', response);
-      const { accessToken} = response.data.data;
+      const { accessToken } = response.data.data;
       this.setTokens(accessToken);
       return accessToken;
     } catch (error) {
@@ -119,7 +119,7 @@ class AuthService {
     localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
   }
 
-  
+
 
   getAccessToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
@@ -138,7 +138,7 @@ class AuthService {
     }
   }
 
-  private clearTokens(): void {
+  public clearTokens(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_TOKEN_KEY);
   }
