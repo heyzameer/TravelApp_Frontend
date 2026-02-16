@@ -31,9 +31,9 @@ const PartnerRegister: React.FC = () => {
             toast.success("Registration successful! sending OTP...");
 
             navigate("/partner/verify-otp", { state: { email: formData.email } });
-        } catch (error: any) {
+        } catch (error) {
             console.error("Partner registration error:", error);
-            const errorMessage = error || "Registration failed. Please try again.";
+            const errorMessage = (error as string) || "Registration failed. Please try again.";
             toast.error(errorMessage);
         } finally {
             setLoading(false);

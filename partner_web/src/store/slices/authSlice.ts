@@ -18,8 +18,9 @@ export const loginUser = createAsyncThunk(
     try {
       const user = await authService.login(credentials);
       return user;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Login failed');
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      return rejectWithValue(err.response?.data?.message || 'Login failed');
     }
   }
 );
@@ -30,8 +31,9 @@ export const adminLogin = createAsyncThunk(
     try {
       const user = await authService.adminLoginService(credentials.email, credentials.password);
       return user;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Admin login failed');
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      return rejectWithValue(err.response?.data?.message || 'Admin login failed');
     }
   }
 );
@@ -42,8 +44,9 @@ export const partnerRegister = createAsyncThunk(
     try {
       const response = await partnerAuthService.registerPartner(data);
       return response.user;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Partner registration failed');
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      return rejectWithValue(err.response?.data?.message || 'Partner registration failed');
     }
   }
 );
@@ -54,8 +57,9 @@ export const partnerLoginVerify = createAsyncThunk(
     try {
       const response = await partnerAuthService.verifyLoginOtp(email, otp);
       return response.user;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Partner verification failed');
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      return rejectWithValue(err.response?.data?.message || 'Partner verification failed');
     }
   }
 );
@@ -65,8 +69,9 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authService.logout();
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Logout failed');
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      return rejectWithValue(err.response?.data?.message || 'Logout failed');
     }
   }
 );
@@ -80,8 +85,9 @@ export const getCurrentUser = createAsyncThunk(
         return rejectWithValue('No user found');
       }
       return user;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to get current user');
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      return rejectWithValue(err.response?.data?.message || 'Failed to get current user');
     }
   }
 );
@@ -95,8 +101,9 @@ export const refreshToken = createAsyncThunk(
         return rejectWithValue('Token refresh failed');
       }
       return token;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Token refresh failed');
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      return rejectWithValue(err.response?.data?.message || 'Token refresh failed');
     }
   }
 );

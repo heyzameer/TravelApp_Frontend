@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { adminService } from '../../services/admin';
-
 import type { Property } from '../../types';
 
 interface PropertiesState {
@@ -22,10 +21,10 @@ export const fetchAllProperties = createAsyncThunk(
     'properties/fetchAll',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await adminService.getAllProperties();
-            return response.properties || [];
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch properties');
+            return await adminService.getAllProperties();
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to fetch properties');
         }
     }
 );
@@ -34,22 +33,22 @@ export const fetchPropertyById = createAsyncThunk(
     'properties/fetchById',
     async (propertyId: string, { rejectWithValue }) => {
         try {
-            const response = await adminService.getPropertyById(propertyId);
-            return response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch property');
+            return await adminService.getPropertyById(propertyId);
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to fetch property');
         }
     }
 );
 
 export const addProperty = createAsyncThunk(
     'properties/add',
-    async (propertyData: any, { rejectWithValue }) => {
+    async (propertyData: Partial<Property>, { rejectWithValue }) => {
         try {
-            const response = await adminService.createProperty(propertyData);
-            return response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to add property');
+            return await adminService.createProperty(propertyData);
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to add property');
         }
     }
 );
@@ -57,14 +56,14 @@ export const addProperty = createAsyncThunk(
 export const updateProperty = createAsyncThunk(
     'properties/update',
     async (
-        { propertyId, propertyData }: { propertyId: string; propertyData: any },
+        { propertyId, propertyData }: { propertyId: string; propertyData: Partial<Property> },
         { rejectWithValue }
     ) => {
         try {
-            const response = await adminService.updateProperty(propertyId, propertyData);
-            return response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update property');
+            return await adminService.updateProperty(propertyId, propertyData);
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to update property');
         }
     }
 );
@@ -75,8 +74,9 @@ export const deleteProperty = createAsyncThunk(
         try {
             await adminService.deleteProperty(propertyId);
             return propertyId;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to delete property');
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to delete property');
         }
     }
 );
@@ -88,10 +88,10 @@ export const togglePropertyStatus = createAsyncThunk(
         { rejectWithValue }
     ) => {
         try {
-            const response = await adminService.updateProperty(propertyId, { isAvailable: isActive });
-            return response.property;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to toggle property status');
+            return await adminService.updateProperty(propertyId, { isActive: isActive });
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to toggle property status');
         }
     }
 );

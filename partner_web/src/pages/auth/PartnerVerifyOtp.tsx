@@ -34,9 +34,9 @@ const PartnerVerifyOtp: React.FC = () => {
             await dispatch(partnerLoginVerify({ email, otp })).unwrap();
             toast.success("Login successful!");
             navigate("/partner/dashboard");
-        } catch (error: any) {
+        } catch (error) {
             console.error("Partner OTP verification error:", error);
-            const errorMessage = error || "Invalid OTP. Please try again.";
+            const errorMessage = (error as string) || "Invalid OTP. Please try again.";
             toast.error(errorMessage);
         } finally {
             setLoading(false);
@@ -50,7 +50,7 @@ const PartnerVerifyOtp: React.FC = () => {
             await partnerAuthService.requestLoginOtp(email);
             toast.success("New OTP sent!");
             setResendTimer(30);
-        } catch (error: any) {
+        } catch (error) {
             toast.error("Failed to resend OTP.");
         }
     };
@@ -71,7 +71,7 @@ const PartnerVerifyOtp: React.FC = () => {
                 <div className="w-full max-w-md">
                     <div className="text-center mb-10">
                         <h1 className="text-3xl font-bold text-gray-900">Verify OTP</h1>
-                        <p className="text-gray-500 mt-2">We've sent a 6-digit code to {email}</p>
+                        <p className="text-gray-500 mt-2">We&apos;ve sent a 6-digit code to {email}</p>
                     </div>
 
                     <form onSubmit={handleSubmit}>
@@ -103,7 +103,7 @@ const PartnerVerifyOtp: React.FC = () => {
 
                     <div className="mt-6 text-center">
                         <p className="text-gray-600">
-                            Didn't receive the code?{" "}
+                            Didn&apos;t receive the code?{" "}
                             <button
                                 onClick={handleResendOtp}
                                 className={`font-medium ${resendTimer > 0 ? "text-gray-400 cursor-not-allowed" : "text-red-500 hover:text-red-600"}`}

@@ -48,8 +48,9 @@ function VerifyContent() {
                 setSuccess('OTP resent successfully.');
                 setTimeLeft(30);
             }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to resend OTP.');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            setError(error.response?.data?.message || 'Failed to resend OTP.');
         } finally {
             setIsLoading(false);
         }
@@ -80,8 +81,9 @@ function VerifyContent() {
                     router.push(role === 'partner' ? '/' : '/auth/login');
                 }, 2000);
             }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Verification failed. Invalid code.');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            setError(error.response?.data?.message || 'Verification failed. Invalid code.');
         } finally {
             setIsLoading(false);
         }
@@ -92,7 +94,7 @@ function VerifyContent() {
             <div className={styles.authCard}>
                 <h1 className={styles.title}>Check your email</h1>
                 <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--muted)' }}>
-                    We've sent a verification code {email ? `to ${email}` : ''}.
+                    We&apos;ve sent a verification code {email ? `to ${email}` : ''}.
                 </p>
 
                 {error && <div className={styles.error}>{error}</div>}

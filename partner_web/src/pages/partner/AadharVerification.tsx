@@ -122,7 +122,7 @@ const AadharVerification: React.FC = () => {
 
                 // Refresh local state with updated profile
                 const profileData = await partnerAuthService.getPartnerProfile();
-                const profile = (profileData as any).partner || profileData;
+                const profile = profileData;
                 dispatch(updateUser(profile));
 
                 // Clear local files after successful submission
@@ -130,9 +130,10 @@ const AadharVerification: React.FC = () => {
                 setBackFile(null);
                 setProfileFile(null);
             }
-        } catch (error: any) {
-            console.error('Submission error:', error);
-            toast.error(error.response?.data?.message || 'Failed to submit documents. Please check your connection.');
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            console.error('Submission error:', err);
+            toast.error(err.response?.data?.message || 'Failed to submit documents. Please check your connection.');
         } finally {
             setIsSubmitting(false);
         }
@@ -147,12 +148,12 @@ const AadharVerification: React.FC = () => {
 
         socketService.onVerificationApproved(() => {
             toast.success('🎉 Your verification has been approved!');
-            partnerAuthService.getPartnerProfile().then(p => dispatch(updateUser((p as any).partner || p)));
+            partnerAuthService.getPartnerProfile().then(p => dispatch(updateUser(p)));
         });
 
         socketService.onVerificationRejected((data) => {
             toast.error(`Verification rejected: ${data.reason}`);
-            partnerAuthService.getPartnerProfile().then(p => dispatch(updateUser((p as any).partner || p)));
+            partnerAuthService.getPartnerProfile().then(p => dispatch(updateUser(p)));
         });
 
         return () => {
@@ -175,9 +176,10 @@ const AadharVerification: React.FC = () => {
             };
             setDocumentUrls(enrichedDocs);
             setShowDocuments(true);
-        } catch (error: any) {
-            console.error('Failed to retrieve docs:', error);
-            const msg = error.response?.data?.message || 'Could not retrieve uploaded documents from server.';
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            console.error('Failed to retrieve docs:', err);
+            const msg = err.response?.data?.message || 'Could not retrieve uploaded documents from server.';
             toast.error(msg);
         } finally {
             setIsLoadingDocs(false);
@@ -224,7 +226,7 @@ const AadharVerification: React.FC = () => {
                                 <h3 className="font-bold text-red-900 text-lg">Submission Rejected</h3>
                                 <div className="mt-2 text-red-800">
                                     <p className="text-sm md:text-base leading-relaxed line-clamp-2 md:line-clamp-none">
-                                        {rejectionReason || 'Your documents were rejected. Please update the necessary images and re-submit.'}
+                                        {(rejectionReason as string) || 'Your documents were rejected. Please update the necessary images and re-submit.'}
                                     </p>
                                     {rejectionReason && (
                                         <button
@@ -503,9 +505,9 @@ const AadharVerification: React.FC = () => {
                         </div>
                         <div className="px-10 pb-10">
                             <div className="bg-gray-50 p-8 rounded-[30px] border border-gray-200 shadow-inner relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-4 font-black text-gray-100 text-6xl leading-none select-none">"</div>
+                                <div className="absolute top-0 right-0 p-4 font-black text-gray-100 text-6xl leading-none select-none">&quot;</div>
                                 <p className="text-gray-800 text-lg leading-relaxed italic font-medium relative z-10 whitespace-pre-wrap">
-                                    {rejectionReason}
+                                    {(rejectionReason as string)}
                                 </p>
                             </div>
                             <button

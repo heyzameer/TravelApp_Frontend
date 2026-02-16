@@ -6,36 +6,9 @@ import {
     Building2, Clock, CheckCircle2, XCircle, AlertCircle,
     Eye, FileText, CreditCard, Loader2, Edit2
 } from "lucide-react";
+import type { Property } from "../../types";
 
-interface Property {
-    _id: string;
-    propertyId: string;
-    propertyName: string;
-    propertyType: string;
-    verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
-    onboardingCompleted: boolean;
-    overallRejectionReason?: string;
-    ownershipDocuments: {
-        ownershipProofStatus: string;
-        ownerKYCStatus: string;
-        rejectionReason?: string;
-    };
-    taxDocuments: {
-        taxStatus: string;
-        rejectionReason?: string;
-    };
-    bankingDetails: {
-        bankingStatus: string;
-        rejectionReason?: string;
-    };
-    address: {
-        city: string;
-        state: string;
-    };
-    pricePerNight: number;
-    submittedForVerificationAt?: string;
-    verifiedAt?: string;
-}
+
 
 const AllProperties: React.FC = () => {
     const navigate = useNavigate();
@@ -55,9 +28,10 @@ const AllProperties: React.FC = () => {
             const data = await partnerAuthService.getPartnerProperties();
             // Show ALL properties, not just completed ones
             setProperties(data);
-        } catch (error: any) {
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
             toast.error("Failed to fetch properties");
-            console.error(error);
+            console.error(err);
         } finally {
             setLoading(false);
         }
@@ -230,7 +204,7 @@ const AllProperties: React.FC = () => {
                                                         Under Review
                                                     </p>
                                                     <p className="text-sm text-yellow-700 font-medium leading-relaxed">
-                                                        Your property is currently being reviewed by our admin team. You'll receive an email once the verification is complete.
+                                                        Your property is currently being reviewed by our admin team. You&apos;ll receive an email once the verification is complete.
                                                     </p>
                                                 </div>
                                             </div>
@@ -300,13 +274,13 @@ const AllProperties: React.FC = () => {
                                                 <span className="font-bold text-gray-900">Ownership Documents</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                {getDocumentStatusIcon(selectedProperty.ownershipDocuments.ownershipProofStatus)}
+                                                {getDocumentStatusIcon(selectedProperty.ownershipDocuments?.ownershipProofStatus || 'pending')}
                                                 <span className="text-sm font-bold text-gray-600 capitalize">
-                                                    {selectedProperty.ownershipDocuments.ownershipProofStatus}
+                                                    {selectedProperty.ownershipDocuments?.ownershipProofStatus || 'pending'}
                                                 </span>
                                             </div>
                                         </div>
-                                        {selectedProperty.ownershipDocuments.rejectionReason && (
+                                        {selectedProperty.ownershipDocuments?.rejectionReason && (
                                             <p className="mt-2 text-sm text-red-600 font-medium pl-8">
                                                 {selectedProperty.ownershipDocuments.rejectionReason}
                                             </p>
@@ -321,13 +295,13 @@ const AllProperties: React.FC = () => {
                                                 <span className="font-bold text-gray-900">Tax Documents</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                {getDocumentStatusIcon(selectedProperty.taxDocuments.taxStatus)}
+                                                {getDocumentStatusIcon(selectedProperty.taxDocuments?.taxStatus || 'pending')}
                                                 <span className="text-sm font-bold text-gray-600 capitalize">
-                                                    {selectedProperty.taxDocuments.taxStatus}
+                                                    {selectedProperty.taxDocuments?.taxStatus || 'pending'}
                                                 </span>
                                             </div>
                                         </div>
-                                        {selectedProperty.taxDocuments.rejectionReason && (
+                                        {selectedProperty.taxDocuments?.rejectionReason && (
                                             <p className="mt-2 text-sm text-red-600 font-medium pl-8">
                                                 {selectedProperty.taxDocuments.rejectionReason}
                                             </p>
@@ -342,13 +316,13 @@ const AllProperties: React.FC = () => {
                                                 <span className="font-bold text-gray-900">Banking Details</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                {getDocumentStatusIcon(selectedProperty.bankingDetails.bankingStatus)}
+                                                {getDocumentStatusIcon(selectedProperty.bankingDetails?.bankingStatus || 'pending')}
                                                 <span className="text-sm font-bold text-gray-600 capitalize">
-                                                    {selectedProperty.bankingDetails.bankingStatus}
+                                                    {selectedProperty.bankingDetails?.bankingStatus || 'pending'}
                                                 </span>
                                             </div>
                                         </div>
-                                        {selectedProperty.bankingDetails.rejectionReason && (
+                                        {selectedProperty.bankingDetails?.rejectionReason && (
                                             <p className="mt-2 text-sm text-red-600 font-medium pl-8">
                                                 {selectedProperty.bankingDetails.rejectionReason}
                                             </p>
@@ -417,7 +391,7 @@ const RejectionModal: React.FC<{ reason: string; onClose: () => void }> = ({ rea
 
                     <div className="w-full bg-gray-50 rounded-[2rem] p-8 border border-gray-100 text-left relative group">
                         <p className="text-gray-700 font-bold leading-relaxed text-lg italic">
-                            "{displayText}"
+                            &quot;{displayText}&quot;
                         </p>
 
                         {shouldTruncate && (

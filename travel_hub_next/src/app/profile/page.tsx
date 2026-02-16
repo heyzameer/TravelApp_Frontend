@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { authService } from '@/services/api';
 import { UserCircle, Camera, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 
 export default function ProfilePage() {
     const { user, checkAuth } = useAuth();
@@ -78,10 +79,11 @@ export default function ProfilePage() {
                 await checkAuth();
                 setProfileImage(null);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
             setMessage({
                 type: 'error',
-                text: error.response?.data?.message || 'Failed to update profile. Please try again.'
+                text: err.response?.data?.message || 'Failed to update profile. Please try again.'
             });
         } finally {
             setIsLoading(false);
@@ -105,8 +107,8 @@ export default function ProfilePage() {
 
                     {message && (
                         <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${message.type === 'success'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
                             }`}>
                             {message.type === 'success' ? (
                                 <CheckCircle className="h-5 w-5" />
@@ -125,11 +127,14 @@ export default function ProfilePage() {
                                 <div className="flex flex-col items-center">
                                     <div className="relative group">
                                         {imagePreview ? (
-                                            <img
-                                                src={imagePreview}
-                                                alt="Profile"
-                                                className="w-40 h-40 rounded-full object-cover border-4 border-primary/20"
-                                            />
+                                            <div className="relative w-40 h-40">
+                                                <Image
+                                                    src={imagePreview}
+                                                    alt="Profile"
+                                                    className="rounded-full object-cover border-4 border-primary/20"
+                                                    fill
+                                                />
+                                            </div>
                                         ) : (
                                             <div className="w-40 h-40 rounded-full bg-slate-100 flex items-center justify-center border-4 border-slate-200">
                                                 <UserCircle className="w-32 h-32 text-slate-400" />

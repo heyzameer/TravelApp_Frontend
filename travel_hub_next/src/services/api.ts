@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AuthResponse, LoginCredentials, RegisterCredentials, VerifyOtpCredentials } from '@/types/auth';
+import { AuthResponse, LoginCredentials, RegisterCredentials } from '@/types/auth';
 
 const API_URL = 'http://localhost:3000/api/v1';
 

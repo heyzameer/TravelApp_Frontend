@@ -34,41 +34,37 @@ export const fetchAllUsers = createAsyncThunk(
         { rejectWithValue }
     ) => {
         try {
-            const response = await adminService.getAllUsers(
+            return await adminService.getAllUsers(
                 { page: params.page || 1, limit: params.limit || 10 },
                 { role: params.role, status: params.status }
             );
-            console.log('fetchAllUsers:', response);
-            return response;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch users');
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to fetch users');
         }
     }
 );
-
-
 
 export const fetchUserById = createAsyncThunk(
     'users/fetchById',
     async (userId: string, { rejectWithValue }) => {
         try {
-            const response = await adminService.getUserById(userId);
-            return response.user;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch user');
+            return await adminService.getUserById(userId);
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to fetch user');
         }
     }
 );
 
 export const updateUser = createAsyncThunk(
     'users/update',
-    async ({ userId, userData }: { userId: string; userData: any }, { rejectWithValue }) => {
+    async ({ userId, userData }: { userId: string; userData: Partial<User> }, { rejectWithValue }) => {
         try {
-            const response = await adminService.updateUser(userId, userData);
-            console.log('updateUser response:', response);
-            return response.data.user;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update user');
+            return await adminService.updateUser(userId, userData);
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to update user');
         }
     }
 );
@@ -79,8 +75,9 @@ export const deleteUser = createAsyncThunk(
         try {
             await adminService.deleteUser(userId);
             return userId;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to delete user');
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(err.response?.data?.message || 'Failed to delete user');
         }
     }
 );
@@ -104,14 +101,9 @@ const usersSlice = createSlice({
                 state.error = null;
             })
             .addCase(fetchAllUsers.fulfilled, (state, action) => {
-                console.log('fetchAllUsers fulfilled:', action.payload);
                 state.isLoading = false;
-                state.users = action.payload.data.users.data  || [];
-                state.pagination = {
-                    page: action.payload.pagination?.page || 1,
-                    limit: action.payload.pagination?.limit || 10,
-                    total: action.payload.pagination?.total || 0,
-                };
+                state.users = action.payload.users;
+                state.pagination = action.payload.pagination;
             })
             .addCase(fetchAllUsers.rejected, (state, action) => {
                 state.isLoading = false;
@@ -140,7 +132,6 @@ const usersSlice = createSlice({
                 state.error = null;
             })
             .addCase(updateUser.fulfilled, (state, action) => {
-                console.log('updateUser fulfilled:', action);
                 state.isLoading = false;
                 const index = state.users.findIndex((user) => user.id === action.payload.id);
                 if (index !== -1) {
