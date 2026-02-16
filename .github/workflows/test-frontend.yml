@@ -1,0 +1,141 @@
+name: Test Frontend Apps
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-user-app:
+    name: Test User App (travel_hub_next)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: travel_hub_next
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: travel_hub_next/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint
+        continue-on-error: true
+      
+      - name: Build application
+        run: npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-app-build
+          path: travel_hub_next/.next
+          retention-days: 7
+
+  test-partner-app:
+    name: Test Partner App (partner_web)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: partner_web
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: partner_web/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint
+        continue-on-error: true
+      
+      - name: Build application
+        run: npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-app-build
+          path: partner_web/.next
+          retention-days: 7
+
+  test-admin-app:
+    name: Test Admin App (admin)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: admin/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint
+        continue-on-error: true
+      
+      - name: Build application
+        run: npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-app-build
+          path: admin/.next
+          retention-days: 7
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-user-app, test-partner-app, test-admin-app]
+    if: always()
+    
+    steps:
+      - name: Check test results
+        run: |
+          echo "╔════════════════════════════════════════════════════════╗"
+          echo "║           Frontend Tests Summary                       ║"
+          echo "╚════════════════════════════════════════════════════════╝"
+          echo "User App: ${{ needs.test-user-app.result }}"
+          echo "Partner App: ${{ needs.test-partner-app.result }}"
+          echo "Admin App: ${{ needs.test-admin-app.result }}"
+          echo "╚════════════════════════════════════════════════════════╝"
+          
+          if [ "${{ needs.test-user-app.result }}" != "success" ] || \
+             [ "${{ needs.test-partner-app.result }}" != "success" ] || \
+             [ "${{ needs.test-admin-app.result }}" != "success" ]; then
+            echo "Some tests failed!"
+            exit 1
+          fi
+          
+          echo "All tests passed!"
