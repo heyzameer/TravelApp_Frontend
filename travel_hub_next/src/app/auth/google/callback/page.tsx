@@ -14,16 +14,21 @@ function GoogleCallbackContent() {
         const refreshToken = searchParams.get('refreshToken');
 
         if (accessToken && refreshToken) {
+            console.log('Tokens received, saving to localStorage...');
             localStorage.setItem('accessToken', accessToken);
             localStorage.setItem('refreshToken', refreshToken);
 
+            console.log('Updating auth context...');
             // Update auth context state
             checkAuth().then(() => {
+                console.log('Auth check complete, redirecting to home...');
                 router.push('/');
+            }).catch(err => {
+                console.error('Auth verification failed:', err);
+                router.push('/auth/login?error=verification_failed');
             });
         } else {
-            // Handle error or missing tokens
-            console.error('Missing tokens in callback');
+            console.error('Missing tokens in callback URL');
             router.push('/auth/login?error=oauth_failed');
         }
     }, [router, searchParams, checkAuth]);
