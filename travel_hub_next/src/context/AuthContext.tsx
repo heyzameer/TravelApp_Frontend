@@ -22,21 +22,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
-    const checkAuth = async () => {
+    const checkAuth = React.useCallback(async () => {
         const token = localStorage.getItem('accessToken');
         if (!token) {
             setIsLoading(false);
             return;
         }
         try {
-            // Try to fetch profile to verify token
-            // If endpoint fails, we might need to rely on stored user or clear auth
-            // For now assume api.getProfile works if token is valid
             const response = await authService.getProfile();
             if (response.data.success && response.data.data?.user) {
                 setUser(response.data.data.user);
             } else {
-                // If profile fails but token exists, maybe token expired
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
                 setUser(null);
@@ -49,11 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         checkAuth();
-    }, []);
+    }, [checkAuth]);
 
     const login = async (credentials: LoginCredentials) => {
         try {
