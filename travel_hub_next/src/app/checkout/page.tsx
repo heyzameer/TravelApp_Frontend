@@ -59,6 +59,9 @@ function CheckoutContent() {
     const endDateStr = searchParams.get('endDate');
     const guestCountStr = searchParams.get('guests') || '2';
     const packageId = searchParams.get('packageId');
+    const mealPlanId = searchParams.get('mealPlanId');
+    const activityIdsStr = searchParams.get('activityIds');
+    const activityIds = React.useMemo(() => activityIdsStr ? activityIdsStr.split(',') : [], [activityIdsStr]);
 
     // State
     const [property, setProperty] = useState<IProperty | null>(null);
@@ -103,7 +106,9 @@ function CheckoutContent() {
                     propertyId,
                     checkIn: startDateStr,
                     checkOut: endDateStr,
-                    rooms: [{ roomId, guests: parseInt(guestCountStr) }]
+                    rooms: [{ roomId, guests: parseInt(guestCountStr) }],
+                    mealPlanId,
+                    activityIds
                 };
                 if (packageId) {
                     calcData.packageId = packageId;
@@ -125,7 +130,7 @@ function CheckoutContent() {
         };
 
         fetchData();
-    }, [propertyId, roomId, startDateStr, endDateStr, guestCountStr, packageId]); // Added all dependencies used in fetchData
+    }, [propertyId, roomId, startDateStr, endDateStr, guestCountStr, packageId, mealPlanId, activityIds]); // Added all dependencies used in fetchData
 
     if (!propertyId || !roomId || !startDateStr || !endDateStr || error) {
         return (
@@ -177,6 +182,8 @@ function CheckoutContent() {
                 checkIn: startDateStr,
                 checkOut: endDateStr,
                 rooms: [{ roomId, guests: parseInt(guestCountStr) }],
+                mealPlanId,
+                activityIds,
                 guestDetails: [
                     {
                         name: user?.fullName || "Guest",
@@ -379,21 +386,39 @@ function CheckoutContent() {
                             ) : (
                                 <>
                                     <div className="flex justify-between text-sm opacity-90">
-                                        <span className="text-slate-600 font-medium">{pkg ? 'Package Total' : 'Room Stay'}</span>
-                                        <span className="font-black font-mono">₹{roomSubtotal}</span>
+                                        <span className="text-slate-600 font-medium">{pkg ? 'Package Total' : 'Room Stay Subtotal'}</span>
+                                        <span className="font-black font-mono">₹{roomSubtotal.toFixed(2)}</span>
                                     </div>
+                                    {priceDetails?.mealPlanPrice && priceDetails.mealPlanPrice > 0 ? (
+                                        <div className="flex justify-between text-sm opacity-90">
+                                            <span className="text-slate-600 font-medium">Meal Plan Package</span>
+                                            <span className="font-black font-mono">₹{priceDetails.mealPlanPrice.toFixed(2)}</span>
+                                        </div>
+                                    ) : null}
+                                    {priceDetails?.activityTotal && priceDetails.activityTotal > 0 ? (
+                                        <div className="flex justify-between text-sm opacity-90">
+                                            <span className="text-slate-600 font-medium">Activities</span>
+                                            <span className="font-black font-mono">₹{priceDetails.activityTotal.toFixed(2)}</span>
+                                        </div>
+                                    ) : null}
                                     <div className="flex justify-between text-sm opacity-90">
-                                        <span className="text-slate-600 font-medium">Taxes & Fees (12%)</span>
-                                        <span className="font-black font-mono">₹{taxes}</span>
+                                        <span className="text-slate-600 font-medium">Taxes</span>
+                                        <span className="font-black font-mono">₹{taxes.toFixed(2)}</span>
                                     </div>
+                                    {priceDetails?.platformFee && priceDetails.platformFee > 0 ? (
+                                        <div className="flex justify-between text-sm opacity-90">
+                                            <span className="text-slate-600 font-medium">Platform Service Fee</span>
+                                            <span className="font-black font-mono">₹{priceDetails.platformFee.toFixed(2)}</span>
+                                        </div>
+                                    ) : null}
                                 </>
                             )}
                         </div>
 
                         <div className="pt-6 border-t border-gray-100 mb-8">
                             <div className="flex justify-between items-center text-xl font-black">
-                                <span>Total</span>
-                                <span className="text-emerald-600">₹{finalAmount}</span>
+                                <span>Grand Total</span>
+                                <span className="text-emerald-600">₹{finalAmount.toFixed(2)}</span>
                             </div>
                         </div>
 

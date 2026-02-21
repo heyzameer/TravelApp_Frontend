@@ -44,6 +44,15 @@ export interface User {
   aadhaarVerified?: boolean;
   aadharStatus?: 'not_submitted' | 'pending' | 'manual_review' | 'verified' | 'rejected' | 'approved';
   aadharRejectionReason?: string;
+  gender?: string;
+  autoConfirmBookings?: boolean;
+  bankingDetails?: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    upiId?: string;
+    bankingStatus?: string;
+  };
   personalDocuments?: {
     aadharFront?: string;
     aadharBack?: string;
@@ -281,12 +290,26 @@ export interface PartnerProfile {
   fullName: string;
   email: string;
   phone: string;
+  gender?: string;
+  dateOfBirth?: string;
+  profilePicture?: string;
   personalDocuments: {
     aadharStatus: string;
+    aadharFront?: string;
+    aadharBack?: string;
     [key: string]: unknown;
   };
+  bankingDetails?: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    upiId?: string;
+    bankingStatus?: string;
+  };
   status: string;
+  autoConfirmBookings?: boolean;
   totalOrders: number;
+  totalProperties?: number;
 }
 
 export interface PropertyRegistrationForm {
@@ -480,6 +503,7 @@ export interface Property {
   // Verification
   isVerified: boolean;
   isActive: boolean;
+  isListedByPartner: boolean;
   verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
   overallRejectionReason?: string;
   propertyId?: string;

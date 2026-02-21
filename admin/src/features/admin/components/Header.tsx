@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Search, Menu } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 
 interface HeaderProps {
     sidebarOpen: boolean;
@@ -23,19 +23,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar, title = 'Da
 
             <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
 
-            <div className="flex items-center space-x-4">
-                {/* Search bar */}
-                <div className="relative hidden md:block">
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        className="py-2 pl-10 pr-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
-                    />
-                    <Search
-                        size={18}
-                        className="absolute top-2.5 left-3 text-gray-400"
-                    />
-                </div>
+            <div className="flex items-center space-x-6">
 
                 {/* Notifications */}
                 <div className="relative">

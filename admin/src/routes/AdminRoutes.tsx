@@ -5,6 +5,7 @@ import DestinationFormPage from '../pages/admin/DestinationFormPage';
 import Dashboard from '../features/admin/pages/Dashboard';
 import UsersList from '../features/admin/pages/users/UsersList';
 import UserDetail from '../features/admin/pages/users/UserDetail';
+import UserEdit from '../features/admin/pages/users/UserEdit';
 import ProtectedRoute from './ProtectedRoute';
 
 import PartnersList from '../features/admin/pages/partners/PartnersList';
@@ -15,6 +16,7 @@ import BookingsList from '../features/admin/pages/bookings/BookingsList';
 import BookingDetail from '../features/admin/pages/bookings/BookingDetail';
 import PartnerVerificationDetail from '../features/admin/pages/partners/PartnerVerificationDetail';
 import PropertyVerificationDetail from '../features/admin/pages/properties/PropertyVerificationDetail';
+import PropertyEditPage from '../features/admin/pages/properties/PropertyEditPage';
 import PartnerRequests from '../features/admin/pages/partners/PartnerRequests';
 import AnalyticsPage from '../features/admin/pages/AnalyticsPage';
 import SettingsPage from '../features/admin/pages/SettingsPage';
@@ -31,6 +33,7 @@ const AdminRoutes = () => {
                     {/* Users/Guests Routes */}
                     <Route path="users" element={<UsersList />} />
                     <Route path="users/:id" element={<UserDetail />} />
+                    <Route path="users/:id/edit" element={<UserEdit />} />
 
                     {/* Partners/Property Owners Routes */}
                     <Route path="partners" element={<PartnersList />} />
@@ -43,6 +46,7 @@ const AdminRoutes = () => {
                     <Route path="properties" element={<PropertiesList />} />
                     <Route path="properties/applications" element={<PropertyApplications />} />
                     <Route path="properties/:id" element={<PropertyDetail />} />
+                    <Route path="properties/:id/edit" element={<PropertyEditPage />} />
                     <Route path="properties/:propertyId/verify" element={<PropertyVerificationDetail />} />
 
                     {/* Bookings Routes */}

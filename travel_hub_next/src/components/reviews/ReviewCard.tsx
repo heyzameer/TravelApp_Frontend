@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { ThumbsUp, ThumbsDown, Flag, CheckCircle, MessageSquare, Calendar, Trash2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Flag, CheckCircle, MessageSquare, Calendar, Trash2, Edit2 } from 'lucide-react';
 import { RatingStars } from './RatingStars';
 import { type Review } from '@/services/reviewService';
 import { format } from 'date-fns';
@@ -13,6 +13,7 @@ interface ReviewCardProps {
     onVote?: (reviewId: string, isHelpful: boolean) => Promise<void>;
     onFlag?: (reviewId: string, reason: string) => Promise<void>;
     onDelete?: (reviewId: string) => Promise<void>;
+    onEdit?: (review: Review) => void;
     showPropertyInfo?: boolean;
 }
 
@@ -21,6 +22,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     onVote,
     onFlag,
     onDelete,
+    onEdit,
     showPropertyInfo = false
 }) => {
     const { user } = useAuth();
@@ -89,22 +91,22 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 <div className="flex items-start gap-4">
                     {/* User Avatar */}
                     <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                        {review.userId.profilePicture ? (
+                        {review.userId?.profilePicture ? (
                             <Image
                                 src={review.userId.profilePicture}
-                                alt={review.userId.fullName}
+                                alt={review.userId.fullName || 'User'}
                                 fill
                                 className="object-cover"
                             />
                         ) : (
-                            <span>{review.userId.fullName.charAt(0).toUpperCase()}</span>
+                            <span>{(review.userId?.fullName || 'A').charAt(0).toUpperCase()}</span>
                         )}
                     </div>
 
                     {/* User Info */}
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-gray-900">{review.userId.fullName}</h4>
+                            <h4 className="font-bold text-gray-900">{review.userId?.fullName || 'Anonymous User'}</h4>
                             {review.isVerified && (
                                 <div className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold">
                                     <CheckCircle size={12} />
@@ -137,16 +139,29 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1">
-                    {/* Delete Button (only for author and only if they are a customer) */}
-                    {user && user.role === 'customer' && user.id === review.userId._id && onDelete && (
-                        <button
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                            className="text-gray-400 hover:text-red-600 transition-colors p-2 disabled:opacity-50"
-                            title="Delete review"
-                        >
-                            <Trash2 size={18} className={isDeleting ? 'animate-pulse' : ''} />
-                        </button>
+                    {/* Delete/Edit Buttons (only for author and only if they are a customer) */}
+                    {user && user.role === 'customer' && (user.id === review.userId?._id || (user as any)._id === review.userId?._id) && (
+                        <>
+                            {onEdit && (
+                                <button
+                                    onClick={() => onEdit(review)}
+                                    className="text-gray-400 hover:text-blue-600 transition-colors p-2"
+                                    title="Edit review"
+                                >
+                                    <Edit2 size={18} />
+                                </button>
+                            )}
+                            {onDelete && (
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={isDeleting}
+                                    className="text-gray-400 hover:text-red-600 transition-colors p-2 disabled:opacity-50"
+                                    title="Delete review"
+                                >
+                                    <Trash2 size={18} className={isDeleting ? 'animate-pulse' : ''} />
+                                </button>
+                            )}
+                        </>
                     )}
 
                     {/* Flag Button */}

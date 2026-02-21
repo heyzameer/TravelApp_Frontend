@@ -28,6 +28,7 @@ const PartnerRoutes = () => {
                 <Route path="property/:id" element={<PropertyDetails />} />
                 <Route path="property/:propertyId/rooms" element={<RoomList />} />
                 <Route path="property/:propertyId/rooms/add" element={<AddRoom />} />
+                <Route path="property/:propertyId/rooms/edit/:roomId" element={<AddRoom />} />
                 <Route path="property/:propertyId/rooms/:roomId/availability" element={<AvailabilityCalendar />} />
                 <Route path="property/:propertyId/meal-plans" element={<MealPlanList />} />
                 <Route path="property/:propertyId/meal-plans/add" element={<AddMealPlan />} />
@@ -35,9 +36,13 @@ const PartnerRoutes = () => {
                 <Route path="property/:propertyId/activities/add" element={<AddActivity />} />
                 <Route path="property/:propertyId/packages" element={<PackageList />} />
                 <Route path="property/:propertyId/packages/add" element={<AddPackage />} />
-                <Route path="register-property" element={<PartnerDashboard />} /> {/* These are handled by specific state in Dashboard based on implementation, or could be subroutes */}
+                <Route path="properties" element={<PartnerDashboard />} />
+                <Route path="register-property" element={<PartnerDashboard />} />
                 <Route path="bookings" element={<PartnerDashboard />} />
                 <Route path="bookings/:id" element={<BookingDetailsPage />} />
+                <Route path="settings" element={<PartnerDashboard />} />
+                <Route path="identity-verification" element={<PartnerDashboard />} />
+                <Route path="reviews" element={<PartnerDashboard />} />
                 <Route path="*" element={<PartnerDashboard />} />
             </Routes>
         </Suspense>

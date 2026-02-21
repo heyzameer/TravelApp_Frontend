@@ -35,8 +35,8 @@ const BookingDetail: React.FC = () => {
         try {
             await dispatch(updateBookingStatus({ bookingId: id, status: newStatus })).unwrap();
             toast.success(`Booking status updated to ${newStatus}`);
-        } catch {
-            toast.error('Failed to load booking details');
+        } catch (err: unknown) {
+            toast.error(typeof err === 'string' ? err : 'Failed to update booking status');
         }
     };
 

@@ -63,11 +63,12 @@ export interface PartnerReviewsResponse {
 
 class PartnerReviewService {
     // Get all reviews for partner's properties
-    async getPartnerReviews(page = 1, limit = 10, propertyId?: string): Promise<PartnerReviewsResponse> {
+    async getPartnerReviews(page = 1, limit = 10, propertyId?: string, needsResponse?: boolean): Promise<PartnerReviewsResponse> {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('limit', limit.toString());
         if (propertyId) params.append('propertyId', propertyId);
+        if (needsResponse) params.append('needsResponse', 'true');
 
         const response = await api.get(`/reviews/partner/reviews?${params.toString()}`);
         return response.data;

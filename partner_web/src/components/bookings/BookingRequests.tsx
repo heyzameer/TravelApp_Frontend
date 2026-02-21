@@ -11,7 +11,11 @@ import PromptModal from '../common/PromptModal';
 import { DataTable, type Column } from '../common/DataTable';
 import type { Booking } from '../../types';
 
-const BookingRequests: React.FC = () => {
+interface BookingRequestsProps {
+    externalSearch?: string;
+}
+
+const BookingRequests: React.FC<BookingRequestsProps> = ({ externalSearch }) => {
     const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
     const { bookings, loading, filters } = useSelector((state: RootState) => state.bookings);
@@ -47,6 +51,13 @@ const BookingRequests: React.FC = () => {
         message: '',
         onConfirm: () => { },
     });
+
+    // Sync external search
+    useEffect(() => {
+        if (externalSearch !== undefined) {
+            dispatch(setFilters({ search: externalSearch }));
+        }
+    }, [externalSearch, dispatch]);
 
     // Handle filtering
     useEffect(() => {
@@ -260,7 +271,7 @@ const BookingRequests: React.FC = () => {
             render: (booking) => (
                 <>
                     <div className="text-sm font-bold text-slate-900">
-                        ₹{booking.finalPrice.toLocaleString()}
+                        ₹{booking.finalPrice.toFixed(2)}
                     </div>
                     <div className={`text-[9px] font-bold uppercase tracking-wider mt-1 px-1.5 py-0.5 rounded-md inline-block ${booking.paymentStatus === 'completed' ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
                         {booking.paymentStatus === 'completed' ? 'Paid' : booking.paymentStatus}
@@ -298,7 +309,7 @@ const BookingRequests: React.FC = () => {
                         <>
                             <button
                                 onClick={(e) => handleApprove(booking.bookingId, e)}
-                                className="px-3 py-1.5 bg-slate-900 text-white rounded-lg hover:bg-black transition-all font-bold text-[10px] uppercase tracking-wider"
+                                className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-sm hover:shadow-md transition-all font-bold text-[10px] uppercase tracking-wider"
                             >
                                 Approve
                             </button>
@@ -369,7 +380,7 @@ const BookingRequests: React.FC = () => {
                 <div className="max-w-[1600px] mx-auto p-4 md:p-6">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-slate-900 rounded-lg">
+                            <div className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-sm">
                                 <Calendar className="text-white h-5 w-5" />
                             </div>
                             <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Booking Management</h2>
@@ -381,7 +392,7 @@ const BookingRequests: React.FC = () => {
                                 <input
                                     type="text"
                                     placeholder="Search guest or ID..."
-                                    className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:bg-white focus:border-transparent outline-none transition-all text-sm"
+                                    className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent outline-none transition-all text-sm"
                                     value={filters.search}
                                     onChange={(e) => handleFilterChange('search', e.target.value)}
                                 />
@@ -421,7 +432,7 @@ const BookingRequests: React.FC = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`pb-4 px-4 whitespace-nowrap text-sm tracking-tight transition-all relative font-bold ${activeTab === tab.id
-                                    ? 'text-slate-900 border-b-2 border-slate-900'
+                                    ? 'text-blue-600 border-b-2 border-blue-600'
                                     : 'text-slate-400 hover:text-slate-600'
                                     }`}
                             >

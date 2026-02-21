@@ -432,7 +432,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.propertyName}
                             onChange={handleInputChange}
                             placeholder="e.g. Grand Palace Hotel"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.propertyName ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold ${errors.propertyName ? 'border-red-500' : 'border-transparent'}`}
                         />
                         {errors.propertyName && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -449,7 +449,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             name="propertyType"
                             value={formData.propertyType}
                             onChange={handleInputChange}
-                            className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none font-semibold"
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-semibold"
                         >
                             <option value="hotel">Hotel</option>
                             <option value="resort">Resort</option>
@@ -469,7 +469,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             onChange={handleInputChange}
                             rows={4}
                             placeholder="Describe your property&apos;s best features..."
-                            className={`w-full px-6 py-4 bg-slate-50 border-2 rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none font-medium ${errors.description ? 'border-red-500' : 'border-transparent'} `}
+                            className={`w-full px-6 py-4 bg-slate-50 border-2 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium ${errors.description ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.description && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -499,7 +499,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.street}
                             onChange={handleInputChange}
                             placeholder="123 Main Street"
-                            className={`w-full px-6 py-4 bg-slate-50 border-2 rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none font-medium ${errors.street ? 'border-red-500' : 'border-transparent'} `}
+                            className={`w-full px-6 py-4 bg-slate-50 border-2 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium ${errors.street ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.street && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -533,7 +533,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                                 }));
                                 if (errors.city) setErrors(prev => ({ ...prev, city: "" }));
                             }}
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.city ? 'border-red-500' : 'border-transparent'} `}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold ${errors.city ? 'border-red-500' : 'border-transparent'} `}
                         >
                             <option value="">Select Destination</option>
                             {destinations.map((dest) => (
@@ -559,7 +559,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.state}
                             onChange={handleInputChange}
                             placeholder="Karnataka"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.state ? 'border-red-500' : 'border-transparent'} `}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold ${errors.state ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.state && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -579,7 +579,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             onChange={handleInputChange}
                             placeholder="560001"
                             maxLength={6}
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.pincode ? 'border-red-500' : 'border-transparent'} `}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold ${errors.pincode ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.pincode && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -684,7 +684,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.gstNumber}
                             onChange={handleInputChange}
                             placeholder="22AAAAA0000A1Z5"
-                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold ${errors.gstNumber ? 'border-red-500' : 'border-transparent'} `}
+                            className={`w-full px-6 py-4 bg-gray-50 border-2 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold ${errors.gstNumber ? 'border-red-500' : 'border-transparent'} `}
                         />
                         {errors.gstNumber && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -704,7 +704,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             onChange={handleInputChange}
                             placeholder="ABCDE1234F"
                             maxLength={10}
-                            className={`w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none font-bold uppercase transition-all ${errors.panNumber ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold uppercase transition-all ${errors.panNumber ? 'border-red-500' : 'border-transparent'}`}
                         />
                         {errors.panNumber && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -767,7 +767,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.accountHolderName}
                             onChange={handleInputChange}
                             placeholder="John Doe"
-                            className={`w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none font-bold transition-all ${errors.accountHolderName ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold transition-all ${errors.accountHolderName ? 'border-red-500' : 'border-transparent'}`}
                         />
                         {errors.accountHolderName && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -786,7 +786,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.accountNumber}
                             onChange={handleInputChange}
                             placeholder="123456789012"
-                            className={`w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none font-bold transition-all ${errors.accountNumber ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold transition-all ${errors.accountNumber ? 'border-red-500' : 'border-transparent'}`}
                         />
                         {errors.accountNumber && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -806,7 +806,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             onChange={handleInputChange}
                             placeholder="SBIN0001234"
                             maxLength={11}
-                            className={`w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none font-bold uppercase transition-all ${errors.ifscCode ? 'border-red-500' : 'border-transparent'}`}
+                            className={`w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold uppercase transition-all ${errors.ifscCode ? 'border-red-500' : 'border-transparent'}`}
                         />
                         {errors.ifscCode && (
                             <p className="text-red-600 text-sm font-medium flex items-center gap-1">
@@ -825,7 +825,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                             value={formData.upiId}
                             onChange={handleInputChange}
                             placeholder="user@paytm"
-                            className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none font-bold transition-all"
+                            className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold transition-all"
                         />
                     </div>
                 </div>
@@ -877,7 +877,7 @@ const RegisterProperty: React.FC<RegisterPropertyProps> = ({ propertyId, onCance
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full px-12 py-5 bg-slate-900 text-white rounded-2xl font-bold uppercase tracking-wider text-lg shadow-xl shadow-gray-200 hover:bg-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                    className="w-full px-12 py-5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-bold uppercase tracking-wider text-lg shadow-xl shadow-blue-200/50 hover:shadow-2xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
                     {loading ? (
                         <>

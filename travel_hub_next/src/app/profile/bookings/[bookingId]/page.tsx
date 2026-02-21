@@ -311,42 +311,60 @@ export default function BookingDetailPage() {
 
                         {/* Meal Plan Details */}
                         {booking.mealPlanId && (
-                            <div>
-                                <h3 className="font-semibold text-gray-900 mb-3">Meal Plan</h3>
-                                <div className="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
+                            <div className="bg-emerald-50/30 rounded-3xl p-6 border border-emerald-100/50">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm">
+                                        <Users size={20} />
+                                    </div>
                                     <div>
-                                        <p className="font-medium text-gray-900">
-                                            {typeof booking.mealPlanId === 'object' ? booking.mealPlanId.name : 'Selected Meal Plan'}
+                                        <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm">Dining & Meal Plan</h3>
+                                        <p className="text-xs text-gray-500 font-medium">Full catering service included</p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center bg-white rounded-2xl p-5 shadow-sm border border-emerald-50">
+                                    <div>
+                                        <p className="font-bold text-gray-900">
+                                            {typeof booking.mealPlanId === 'object' ? (booking.mealPlanId as { name: string }).name : 'Standard Meal Plan'}
                                         </p>
-                                        <p className="text-sm text-gray-500">
-                                            Included for {booking.totalGuests} guests × {booking.numberOfNights} nights
+                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                            {booking.totalGuests} Guests • {booking.numberOfNights} Nights
                                         </p>
                                     </div>
-                                    <p className="font-semibold text-indigo-600">
-                                        ₹{booking.mealPlanPrice?.toLocaleString() || '0'}
-                                    </p>
+                                    <div className="text-right">
+                                        <p className="text-lg font-black text-emerald-600">₹{(booking.mealPlanPrice || booking.mealTotalPrice || 0).toLocaleString()}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Total Service</p>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
                         {/* Activity Details */}
                         {booking.activityBookings && booking.activityBookings.length > 0 && (
-                            <div>
-                                <h3 className="font-semibold text-gray-900 mb-3">Activities</h3>
+                            <div className="bg-purple-50/30 rounded-3xl p-6 border border-purple-100/50">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-purple-600 shadow-sm">
+                                        <CheckCircle size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm">Guest Experiences</h3>
+                                        <p className="text-xs text-gray-500 font-medium">Premium activities & adventures</p>
+                                    </div>
+                                </div>
                                 <div className="space-y-3">
                                     {booking.activityBookings.map((activity, index) => (
-                                        <div key={index} className="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
+                                        <div key={index} className="flex justify-between items-center bg-white rounded-2xl p-5 shadow-sm border border-purple-50 hover:border-purple-200 transition-colors">
                                             <div>
-                                                <p className="font-medium text-gray-900">
-                                                    {typeof activity.activityId === 'object' ? activity.activityId.name : 'Activity'}
+                                                <p className="font-bold text-gray-900">
+                                                    {typeof activity.activityId === 'object' ? (activity.activityId as { name: string }).name : 'Adventure Activity'}
                                                 </p>
-                                                <p className="text-sm text-gray-500">
-                                                    {activity.participants} participants
+                                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                                    {activity.participants} Participants • {activity.date ? new Date(activity.date).toLocaleDateString() : 'Scheduled'}
                                                 </p>
                                             </div>
-                                            <p className="font-semibold text-indigo-600">
-                                                ₹{activity.totalActivityPrice.toLocaleString()}
-                                            </p>
+                                            <div className="text-right">
+                                                <p className="text-lg font-black text-purple-600">₹{activity.totalActivityPrice.toLocaleString()}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Activity Fee</p>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -371,10 +389,22 @@ export default function BookingDetailPage() {
                                     <span className="font-medium text-gray-900">₹{booking.activityTotalPrice.toLocaleString()}</span>
                                 </div>
                             )}
-                            <div className="flex justify-between items-center pt-2 border-t border-gray-100 mb-4">
-                                <span className="text-lg font-semibold text-gray-900">Total Amount</span>
-                                <span className="text-2xl font-bold text-indigo-600 flex items-center gap-1">
-                                    <IndianRupee size={20} />
+                            {booking.taxAmount !== undefined && booking.taxAmount > 0 && (
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-gray-600">Taxes</span>
+                                    <span className="font-medium text-gray-900">₹{booking.taxAmount.toLocaleString()}</span>
+                                </div>
+                            )}
+                            {booking.platformFee !== undefined && booking.platformFee > 0 && (
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-gray-600">Platform Service Fee</span>
+                                    <span className="font-medium text-gray-900">₹{booking.platformFee.toLocaleString()}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center pt-4 border-t border-gray-100 mb-4">
+                                <span className="text-lg font-black text-gray-900">Grand Total</span>
+                                <span className="text-2xl font-black text-indigo-600 flex items-center gap-1">
+                                    <IndianRupee size={22} className="stroke-[3]" />
                                     {booking.finalPrice.toLocaleString()}
                                 </span>
                             </div>

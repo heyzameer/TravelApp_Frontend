@@ -8,6 +8,8 @@ import { toast } from 'react-hot-toast';
 import ReusableTable from '../../../../components/shared/ReusableTable';
 import type { ColumnConfig } from '../../../../components/shared/ReusableTable';
 
+import ConfirmDialogManager from '../../../../utils/confirmDialog';
+
 const PropertiesList: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
@@ -36,7 +38,16 @@ const PropertiesList: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this property?')) {
+        const confirmed = await ConfirmDialogManager.getInstance().confirm(
+            'Are you sure you want to delete this property? This will permanently remove the property listing and all associated data.',
+            {
+                title: 'Delete Property',
+                confirmText: 'Delete',
+                type: 'delete'
+            }
+        );
+
+        if (confirmed) {
             try {
                 await dispatch(deleteProperty(id)).unwrap();
                 toast.success('Property deleted successfully');
@@ -93,7 +104,7 @@ const PropertiesList: React.FC = () => {
                         <p className="font-semibold text-gray-800">{property.propertyName || 'Untitled Property'}</p>
                         <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
                             <Star size={12} fill="currentColor" />
-                            <span>{property.rating || 0} ({property.reviewsCount || 0})</span>
+                            <span>{property.averageRating || 0} ({property.totalReviews || 0})</span>
                         </div>
                     </div>
                 </div>
@@ -121,11 +132,11 @@ const PropertiesList: React.FC = () => {
             )
         },
         {
-            header: 'Price/Night',
-            key: 'price',
+            header: 'Type',
+            key: 'type',
             render: (property) => (
-                <span className="text-emerald-600 font-bold">
-                    ₹{property.pricePerNight || 0}
+                <span className="text-blue-600 font-bold capitalize">
+                    {property.propertyType}
                 </span>
             )
         },

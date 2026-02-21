@@ -2,14 +2,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    ArrowLeft, MapPin, Building, DollarSign,
-    Star, Bed, ShieldCheck, Calendar,
+    ArrowLeft, MapPin, Building,
+    Star, ShieldCheck, Calendar,
     MessageSquare, Trash2, Edit2, ExternalLink
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchPropertyById, togglePropertyStatus, deleteProperty } from '../../../../store/slices/propertiesSlice';
 import { toast } from 'react-hot-toast';
+import ConfirmDialogManager from '../../../../utils/confirmDialog';
 import VerificationStatusBadge from '../../components/VerificationStatusBadge';
+import MapPopup from '../../components/MapPopup';
+import ComposeEmailModal from '../users/ComposeEmailModal';
+import { adminService } from '../../../../services/admin';
 
 const PropertyDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -17,6 +21,8 @@ const PropertyDetail: React.FC = () => {
     const dispatch = useAppDispatch();
     const { selectedProperty, isLoading, error } = useAppSelector((state) => state.properties);
     const [isActionLoading, setIsActionLoading] = useState(false);
+    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -42,7 +48,17 @@ const PropertyDetail: React.FC = () => {
 
     const handleDelete = async () => {
         if (!id) return;
-        if (window.confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
+
+        const confirmed = await ConfirmDialogManager.getInstance().confirm(
+            'Are you sure you want to delete this property? This action cannot be undone and will remove all associated data and bookings.',
+            {
+                title: 'Delete Property',
+                confirmText: 'Delete',
+                type: 'delete'
+            }
+        );
+
+        if (confirmed) {
             setIsActionLoading(true);
             try {
                 await dispatch(deleteProperty(id)).unwrap();
@@ -53,6 +69,14 @@ const PropertyDetail: React.FC = () => {
             } finally {
                 setIsActionLoading(false);
             }
+        }
+    };
+
+    const handleSendEmail = async (formData: FormData) => {
+        try {
+            await adminService.sendPartnerEmail(formData);
+        } catch (err) {
+            throw err;
         }
     };
 
@@ -87,15 +111,12 @@ const PropertyDetail: React.FC = () => {
         propertyType,
         description,
         address,
-        pricePerNight,
-        maxGuests,
-        totalRooms,
         verificationStatus,
         isActive,
         coverImage,
         images,
-        rating,
-        reviewsCount,
+        averageRating,
+        totalReviews,
         amenities,
         partner,
         createdAt
@@ -235,16 +256,16 @@ const PropertyDetail: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Quick Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <StatCard icon={<Star className="text-yellow-500" />} label="Overall Rating" value={`${rating || 0} / 5`} sub={`${reviewsCount || 0} Verified Reviews`} />
-                        <StatCard icon={<Bed className="text-purple-600" />} label="Accommodation" value={`${totalRooms} Rooms`} sub={`${maxGuests} Max Guests`} />
-                        <StatCard icon={<DollarSign className="text-emerald-600" />} label="Pricing" value={`₹${pricePerNight}`} sub="Average per night" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <StatCard icon={<Star className="text-yellow-500" />} label="Overall Rating" value={`${averageRating || 0} / 5`} sub={`${totalReviews || 0} Verified Reviews`} />
+                        <div onClick={() => setIsMapModalOpen(true)} className="cursor-pointer">
+                            <StatCard icon={<MapPin className="text-blue-600" />} label="Location" value={address?.city || ''} sub={address?.state || ''} />
+                        </div>
                     </div>
                 </div>
 
                 {/* Sidebar */}
-                <div className="space-y-8">
+                <div className="lg:sticky lg:top-24 space-y-8 h-fit">
                     {/* Partner Card */}
                     <div className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
                         <div className="flex flex-col items-center text-center">
@@ -287,9 +308,12 @@ const PropertyDetail: React.FC = () => {
                             <p className="text-sm text-gray-500 font-medium">{address?.city}, {address?.state} - {address?.pincode}</p>
                             <p className="text-sm text-gray-500 mt-1">{address?.country}</p>
                         </div>
-                        <button className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-2xl shadow-lg shadow-blue-100 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                            <ExternalLink size={18} />
-                            OPEN IN GOOGLE MAPS
+                        <button
+                            onClick={() => setIsMapModalOpen(true)}
+                            className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-2xl shadow-lg shadow-blue-100 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        >
+                            <MapPin size={18} />
+                            VIEW ON MAP
                         </button>
                     </div>
 
@@ -302,12 +326,34 @@ const PropertyDetail: React.FC = () => {
                         <p className="text-blue-100 text-sm mb-6 leading-relaxed">
                             Need update from the partner about this property or documents?
                         </p>
-                        <button className="w-full py-3 bg-white/20 hover:bg-white/30 text-white font-bold rounded-xl backdrop-blur-md transition-all border border-white/10">
+                        <button
+                            onClick={() => setIsEmailModalOpen(true)}
+                            className="w-full py-3 bg-white/20 hover:bg-white/30 text-white font-bold rounded-xl backdrop-blur-md transition-all border border-white/10"
+                        >
                             Send Email
                         </button>
                     </div>
                 </div>
             </div>
+
+            {selectedProperty?.location?.coordinates && (
+                <MapPopup
+                    isOpen={isMapModalOpen}
+                    onClose={() => setIsMapModalOpen(false)}
+                    lat={selectedProperty.location.coordinates[1]}
+                    lng={selectedProperty.location.coordinates[0]}
+                    propertyName={selectedProperty.propertyName}
+                    address={`${selectedProperty.address.street}, ${selectedProperty.address.city}, ${selectedProperty.address.state} - ${selectedProperty.address.pincode}`}
+                />
+            )}
+
+            <ComposeEmailModal
+                isOpen={isEmailModalOpen}
+                onClose={() => setIsEmailModalOpen(false)}
+                recipientEmail={(selectedProperty?.partner as unknown as { email?: string })?.email || ''}
+                recipientName={selectedProperty?.partner?.fullName || 'Partner'}
+                onSend={handleSendEmail}
+            />
         </div>
     );
 };

@@ -42,8 +42,17 @@ const AddMealPlan: React.FC = () => {
         e.preventDefault();
         if (!propertyId) return;
 
+        // Frontend Validation
+        if (!formData.name.trim()) {
+            toast.error('Meal plan name is required');
+            return;
+        }
         if (formData.mealsIncluded.length === 0) {
-            toast.error('Please select at least one meal');
+            toast.error('Please select at least one meal to include in this plan');
+            return;
+        }
+        if (!formData.pricePerPersonPerDay || Number(formData.pricePerPersonPerDay) < 0) {
+            toast.error('Please enter a valid price per person');
             return;
         }
 
@@ -57,78 +66,91 @@ const AddMealPlan: React.FC = () => {
                 }
             })).unwrap();
 
+            toast.success('Meal plan created successfully');
             navigate(-1);
         } catch (error) {
-            console.error('Failed to create meal plan', error);
+            const err = error as { message?: string };
+            console.error('Failed to create meal plan', err);
+            toast.error(err?.message || 'Failed to create meal plan');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="max-w-3xl mx-auto p-6">
-            <div className="flex items-center gap-4 mb-8">
+        <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-8">
+            <div className="flex items-center gap-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <button
                     onClick={() => navigate(-1)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-3 hover:bg-gray-50 rounded-2xl transition-all text-gray-400 hover:text-gray-600 border border-transparent hover:border-gray-100"
                 >
-                    <ArrowLeft className="w-6 h-6 text-gray-600" />
+                    <ArrowLeft className="w-6 h-6" />
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">Add New Meal Plan</h1>
+                <div>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight uppercase">Add Meal Plan</h1>
+                    <p className="text-gray-500 font-bold text-xs uppercase tracking-[0.2em] mt-1 ml-1">
+                        Define a new dining package
+                    </p>
+                </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Basic Info */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Utensils className="w-5 h-5 text-blue-600" />
-                        Plan Details
+                <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 md:p-10">
+                    <h2 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-4">
+                        <div className="p-3 bg-blue-50 rounded-2xl">
+                            <Utensils className="w-6 h-6 text-blue-600" />
+                        </div>
+                        PLAN DETAILS
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Plan Name</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Plan Name</label>
                             <input
                                 type="text"
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
                                 placeholder="e.g., CP Plan (Breakfast Only)"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-gray-900 shadow-sm placeholder:text-gray-300"
                                 required
                             />
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Included Meals</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-3 block">Included Meals</label>
                             <div className="flex flex-wrap gap-3">
                                 {MEAL_TYPES.map(meal => (
                                     <button
                                         key={meal}
                                         type="button"
                                         onClick={() => toggleMeal(meal)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-2 ${formData.mealsIncluded.includes(meal)
-                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                        className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center gap-3 ${formData.mealsIncluded.includes(meal)
+                                            ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200'
+                                            : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200 hover:text-gray-600'
                                             }`}
                                     >
                                         {meal}
-                                        {formData.mealsIncluded.includes(meal) && <Check size={16} />}
+                                        {formData.mealsIncluded.includes(meal) && <Check size={14} />}
                                     </button>
                                 ))}
                             </div>
+                            {formData.mealsIncluded.length === 0 && (
+                                <p className="mt-3 text-[10px] font-bold text-red-400 uppercase tracking-widest ml-1">Please select at least one meal type</p>
+                            )}
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Price Per Person (Daily)</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Price Per Person (Daily)</label>
                             <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-gray-500">₹</span>
+                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-black">₹</span>
                                 <input
                                     type="number"
                                     name="pricePerPersonPerDay"
                                     value={formData.pricePerPersonPerDay}
                                     onChange={handleChange}
-                                    className="w-full pl-8 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    className="w-full pl-12 pr-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-gray-900 shadow-sm"
                                     required
                                     min="0"
                                 />
@@ -136,27 +158,27 @@ const AddMealPlan: React.FC = () => {
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Description (Optional)</label>
                             <textarea
                                 name="description"
                                 value={formData.description}
                                 onChange={handleChange}
-                                rows={3}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                placeholder="Describe includes/excludes..."
+                                rows={4}
+                                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-gray-900 shadow-sm placeholder:text-gray-300 italic"
+                                placeholder="Describe inclusions/excludes..."
                             />
                         </div>
                     </div>
                 </div>
 
-                <div className="flex justify-end pt-4">
+                <div className="flex justify-end pr-4">
                     <button
                         type="submit"
                         disabled={loading}
-                        className="px-8 py-3 bg-blue-600 text-white rounded-xl font-medium shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="px-12 py-5 bg-gray-900 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed active:scale-95"
                     >
                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        Create Meal Plan
+                        Save Meal Plan
                     </button>
                 </div>
             </form>

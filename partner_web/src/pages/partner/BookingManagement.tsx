@@ -1,10 +1,14 @@
 import React from 'react';
 import BookingRequests from '../../components/bookings/BookingRequests';
 
-const BookingManagement: React.FC = () => {
+interface BookingManagementProps {
+    searchQuery?: string;
+}
+
+const BookingManagement: React.FC<BookingManagementProps> = ({ searchQuery }) => {
     return (
         <div className="h-full">
-            <BookingRequests />
+            <BookingRequests externalSearch={searchQuery} />
         </div>
     );
 };

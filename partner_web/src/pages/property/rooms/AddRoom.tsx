@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import type { AppDispatch } from '../../../store/index';
-import { createRoom } from '../../../features/rooms/roomSlice';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../../../store/index';
+import { createRoom, fetchRooms, updateRoom, uploadRoomImages } from '../../../features/rooms/roomSlice';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CategorizedImageUpload } from '../../../components/property/CategorizedImageUpload';
 import { ArrowLeft, Save, Loader2, BedDouble, Users, IndianRupee, Layers } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-import type { ImageFile } from '../../../types';
+import type { ImageFile, Room } from '../../../types';
 
 const ROOM_TYPES = ['Deluxe', 'Standard', 'Suite', 'Dormitory', 'Cottage', 'Villa', 'Apartment'];
 const SHARING_TYPES = ['Private', '2-Sharing', '3-Sharing', '4-Sharing', '6-Sharing', '8-Sharing', '10-Sharing'];
@@ -16,8 +16,12 @@ const AMENITIES_LIST = ['WiFi', 'AC', 'TV', 'Heater', 'Balcony', 'Room Service',
 const AddRoom: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
-    const { propertyId } = useParams<{ propertyId: string }>();
+    const { propertyId, roomId } = useParams<{ propertyId: string; roomId: string }>();
+    const isEdit = Boolean(roomId);
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(isEdit);
+
+    const { rooms = [] } = useSelector((state: RootState) => state.rooms);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -38,6 +42,51 @@ const AddRoom: React.FC = () => {
 
     // Images State
     const [categorizedImages, setCategorizedImages] = useState<ImageFile[]>([]);
+
+    useEffect(() => {
+        if (isEdit && roomId) {
+            const fetchRoom = async () => {
+                try {
+                    setFetching(true);
+                    const room = (rooms as Room[]).find((r) => r._id === roomId);
+                    if (room) {
+                        setFormData({
+                            roomName: room.roomName || '',
+                            quantity: 1,
+                            roomNumbers: [room.roomNumber || ''],
+                            roomType: room.roomType,
+                            sharingType: room.sharingType,
+                            baseOccupancy: room.baseOccupancy,
+                            minOccupancy: room.minOccupancy,
+                            maxOccupancy: room.maxOccupancy,
+                            basePricePerNight: room.basePricePerNight.toString(),
+                            extraPersonCharge: room.extraPersonCharge.toString(),
+                            bedConfiguration: room.bedConfiguration,
+                            hasSelfCooking: room.hasSelfCooking,
+                            amenities: room.amenities
+                        });
+                        if (room.images) {
+                            setCategorizedImages(room.images.map((img: { url: string; category: string; label?: string }) => ({
+                                url: img.url,
+                                category: img.category,
+                                label: img.label || '',
+                                file: null,
+                                preview: img.url
+                            } as ImageFile)));
+                        }
+                    } else if (propertyId) {
+                        await dispatch(fetchRooms(propertyId));
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch room details:', error);
+                    toast.error('Failed to load room details');
+                } finally {
+                    setFetching(false);
+                }
+            };
+            fetchRoom();
+        }
+    }, [isEdit, roomId, rooms, propertyId, dispatch]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -98,20 +147,42 @@ const AddRoom: React.FC = () => {
                 hasSelfCooking: Boolean(formData.hasSelfCooking)
             };
 
-            await dispatch(createRoom({
-                propertyId,
-                data: apiData,
-                images: categorizedImages
-            })).unwrap();
+            if (isEdit && roomId) {
+                // Update specific room
+                await dispatch(updateRoom({
+                    roomId,
+                    data: apiData
+                })).unwrap();
+
+                // If images were changed (new files added), upload them
+                const newFiles = categorizedImages.filter(img => img.file);
+                if (newFiles.length > 0) {
+                    await dispatch(uploadRoomImages({ roomId, images: newFiles })).unwrap();
+                }
+            } else {
+                // Create new room(s)
+                await dispatch(createRoom({
+                    propertyId,
+                    data: apiData,
+                    images: categorizedImages
+                })).unwrap();
+            }
 
             navigate(`/partner/property/${propertyId}/rooms`);
         } catch (error) {
-            console.error('Failed to create room:', error);
-            // Error handling is in slice
+            console.error('Failed to save room:', error);
         } finally {
             setLoading(false);
         }
     };
+
+    if (fetching) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="animate-spin text-red-600 w-12 h-12" />
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-4xl mx-auto pb-20 p-6">
@@ -124,8 +195,8 @@ const AddRoom: React.FC = () => {
 
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-8 border-b border-gray-100 bg-gray-50/50">
-                    <h1 className="text-2xl font-black text-gray-900">ADD NEW ROOM</h1>
-                    <p className="text-gray-500 font-medium">Configure room details, pricing and photos</p>
+                    <h1 className="text-2xl font-black text-gray-900">{isEdit ? 'EDIT ROOM' : 'ADD NEW ROOM'}</h1>
+                    <p className="text-gray-500 font-medium">{isEdit ? 'Update your room details and pricing' : 'Configure room details, pricing and photos'}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-8">
@@ -149,28 +220,30 @@ const AddRoom: React.FC = () => {
                                 <p className="text-xs text-gray-400">A descriptive name for this room type</p>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Number of Rooms *</label>
-                                <input
-                                    type="number"
-                                    name="quantity"
-                                    value={formData.quantity}
-                                    onChange={handleInputChange}
-                                    min="1"
-                                    max="50"
-                                    required
-                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-red-500 outline-none font-bold"
-                                />
-                                <p className="text-xs text-gray-400">How many rooms of this type do you want to create?</p>
-                            </div>
+                            {!isEdit && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Number of Rooms *</label>
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        value={formData.quantity}
+                                        onChange={handleInputChange}
+                                        min="1"
+                                        max="50"
+                                        required
+                                        className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-red-500 outline-none font-bold"
+                                    />
+                                    <p className="text-xs text-gray-400">How many rooms of this type do you want to create?</p>
+                                </div>
+                            )}
 
                             {/* Dynamic Room Number Inputs */}
                             <div className="space-y-4">
-                                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Room Numbers *</label>
+                                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isEdit ? 'Room Number *' : 'Room Numbers *'}</label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {formData.roomNumbers.map((roomNumber, index) => (
                                         <div key={index} className="space-y-1">
-                                            <label className="text-xs font-medium text-gray-400">Room {index + 1}</label>
+                                            {!isEdit && <label className="text-xs font-medium text-gray-400">Room {index + 1}</label>}
                                             <input
                                                 type="text"
                                                 value={roomNumber}
@@ -319,7 +392,7 @@ const AddRoom: React.FC = () => {
                             className="flex items-center gap-2 bg-red-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                            SAVE ROOM
+                            {isEdit ? 'UPDATE ROOM' : 'SAVE ROOM'}
                         </button>
                     </div>
                 </form>

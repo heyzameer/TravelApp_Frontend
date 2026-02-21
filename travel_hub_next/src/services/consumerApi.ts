@@ -50,13 +50,29 @@ export interface IActivity {
 }
 
 export interface IBookingPriceResponse {
-    originalPrice: number;
-    discountedPrice: number;
-    taxAmount: number;
+    roomTotal: number;
+    mealPlanPrice: number;
+    activityTotal: number;
+    subtotal: number;
+    taxes: number;
+    platformFee: number;
     finalPrice: number;
-    roomTotal?: number;
-    taxes?: number;
-    breakdown: {
+    roomPrices: {
+        roomId: string;
+        roomName: string;
+        nights: number;
+        pricePerNight: number;
+        totalGuests: number;
+        subtotal: number;
+    }[];
+    activityPrices: {
+        activityId: string;
+        activityName: string;
+        participants: number;
+        pricePerPerson: number;
+        subtotal: number;
+    }[];
+    breakdown?: {
         basePrice: number;
         taxes: number;
         discounts: number;

@@ -3,13 +3,17 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Mail, Phone, Shield, ShieldCheck,
-    Calendar, User as UserIcon, Star,
+    Calendar, User as UserIcon,
     Trash2, Edit2, CheckCircle, XCircle,
-    Clock, Tag, CreditCard
+    Clock, Tag
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchUserById, updateUser, deleteUser } from '../../../../store/slices/usersSlice';
 import { toast } from 'react-hot-toast';
+
+import ConfirmDialogManager from '../../../../utils/confirmDialog';
+import ComposeEmailModal from './ComposeEmailModal';
+import { adminService } from '../../../../services/admin';
 
 const UserDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -17,9 +21,13 @@ const UserDetail: React.FC = () => {
     const dispatch = useAppDispatch();
     const { selectedUser, isLoading, error } = useAppSelector((state) => state.users);
     const [isActionLoading, setIsActionLoading] = useState(false);
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+
+    const [dateFilter, setDateFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
 
     useEffect(() => {
-        if (id) {
+        if (id && id !== 'undefined') {
             dispatch(fetchUserById(id));
         }
     }, [dispatch, id]);
@@ -42,7 +50,17 @@ const UserDetail: React.FC = () => {
 
     const handleDelete = async () => {
         if (!id) return;
-        if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+
+        const confirmed = await ConfirmDialogManager.getInstance().confirm(
+            'Are you sure you want to delete this user? This action cannot be undone and will permanently remove all their associated data.',
+            {
+                title: 'Delete User',
+                confirmText: 'Delete',
+                type: 'delete'
+            }
+        );
+
+        if (confirmed) {
             setIsActionLoading(true);
             try {
                 await dispatch(deleteUser(id)).unwrap();
@@ -55,6 +73,35 @@ const UserDetail: React.FC = () => {
             }
         }
     };
+
+    const handleSendEmail = async (formData: FormData) => {
+        try {
+            await adminService.sendGuestEmail(formData);
+        } catch (error: unknown) {
+            console.error('Error sending email:', error);
+            throw error;
+        }
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { bookings = [] } = (selectedUser || {}) as any;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filteredBookings = bookings.filter((booking: any) => {
+        let matchesDate = true;
+        let matchesStatus = true;
+
+        if (dateFilter) {
+            // To be comprehensive, checking the 'booked' date rather than check in/out.
+            matchesDate = new Date(booking.createdAt).toISOString().split('T')[0] === dateFilter;
+        }
+
+        if (statusFilter) {
+            matchesStatus = booking.status.toLowerCase() === statusFilter.toLowerCase();
+        }
+
+        return matchesDate && matchesStatus;
+    });
 
     if (isLoading && !selectedUser) {
         return (
@@ -82,6 +129,7 @@ const UserDetail: React.FC = () => {
         );
     }
 
+
     const {
         fullName,
         email,
@@ -92,10 +140,6 @@ const UserDetail: React.FC = () => {
         profilePicture,
         createdAt,
         lastLogin,
-        walletBalance,
-        loyaltyPoints,
-        bookings = [],
-        totalBookings = 0
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } = selectedUser as any; // Using any for extended fields from backend
 
@@ -116,7 +160,12 @@ const UserDetail: React.FC = () => {
                         <div className="relative">
                             <div className="w-24 h-24 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
                                 {profilePicture ? (
-                                    <img src={profilePicture} alt={fullName} className="w-full h-full object-cover" />
+                                    <img
+                                        src={profilePicture}
+                                        alt={fullName}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/profile3.png'; }}
+                                    />
                                 ) : (
                                     <UserIcon size={40} className="text-blue-400" />
                                 )}
@@ -185,34 +234,34 @@ const UserDetail: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-8">
-                    {/* Stats Overview */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <StatCard
-                            icon={<CreditCard className="text-blue-600" />}
-                            label="Wallet Balance"
-                            value={`₹${walletBalance || 0}`}
-                            sub="Available Credit"
-                        />
-                        <StatCard
-                            icon={<Star className="text-yellow-600" />}
-                            label="Loyalty Points"
-                            value={`${loyaltyPoints || 0}`}
-                            sub="Reward Program"
-                        />
-                        <StatCard
-                            icon={<Calendar className="text-purple-600" />}
-                            label="Total Bookings"
-                            value={`${totalBookings || 0}`}
-                            sub="Lifetime reservations"
-                        />
-                    </div>
-
                     {/* Booking History */}
                     <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
                         <div className="p-8 border-b border-gray-50 flex items-center justify-between">
                             <h3 className="text-2xl font-bold text-gray-900">Recent Bookings</h3>
-                            <button className="text-blue-600 font-bold text-sm hover:underline">View All</button>
+                            {/* <button className="text-blue-600 font-bold text-sm hover:underline">View All</button> */}
                         </div>
+
+                        {/* Filters placeholder, simplified for now since we usually paginate or have a generic datatable */}
+                        <div className="px-8 py-4 bg-gray-50 flex gap-4 border-b border-gray-100">
+                            <input
+                                type="date"
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value)}
+                                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                                title="Filter by date booked"
+                            />
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">All Statuses</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="pending">Pending</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-gray-50/50">
@@ -225,17 +274,20 @@ const UserDetail: React.FC = () => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {bookings.length > 0 ? bookings.map((booking: any) => (
+                                    {filteredBookings.length > 0 ? filteredBookings.map((booking: any) => (
                                         <tr key={booking._id} className="hover:bg-gray-50 transition-colors">
                                             <td className="py-4 px-8">
-                                                <p className="font-bold text-gray-900">{booking.propertyName || 'Property Name'}</p>
-                                                <p className="text-[10px] text-gray-400 font-mono italic">#{booking._id?.slice(-8).toUpperCase()}</p>
+                                                <p className="font-bold text-gray-900">{booking.propertyId?.propertyName || 'Property Name'}</p>
+                                                <p className="text-[10px] text-gray-400 font-mono italic">#{booking.bookingId}</p>
                                             </td>
-                                            <td className="py-4 px-8 text-sm text-gray-600 font-medium">
-                                                {new Date(booking.createdAt).toLocaleDateString()}
+                                            <td className="py-4 px-8 text-sm text-gray-600 font-medium whitespace-nowrap">
+                                                <div className="flex flex-col">
+                                                    <span>{new Date(booking.checkInDate).toLocaleDateString()} -</span>
+                                                    <span>{new Date(booking.checkOutDate).toLocaleDateString()}</span>
+                                                </div>
                                             </td>
                                             <td className="py-4 px-8">
-                                                <p className="font-bold text-gray-900">₹{booking.pricing || booking.totalAmount}</p>
+                                                <p className="font-bold text-gray-900">₹{booking.finalPrice}</p>
                                             </td>
                                             <td className="py-4 px-8">
                                                 <BookingStatusBadge status={booking.status} />
@@ -289,7 +341,10 @@ const UserDetail: React.FC = () => {
                         <p className="text-indigo-100 text-sm mb-8 leading-relaxed">
                             Need to discuss a booking or account issue? Send an official email to this guest.
                         </p>
-                        <button className="w-full py-4 bg-white text-indigo-600 font-extrabold rounded-2xl shadow-lg border-2 border-transparent hover:scale-[1.02] active:scale-[0.98] transition-all">
+                        <button
+                            onClick={() => setIsEmailModalOpen(true)}
+                            className="w-full py-4 bg-white text-indigo-600 font-extrabold rounded-2xl shadow-lg border-2 border-transparent hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        >
                             COMPOSE EMAIL
                         </button>
                     </div>
@@ -304,20 +359,17 @@ const UserDetail: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            <ComposeEmailModal
+                isOpen={isEmailModalOpen}
+                onClose={() => setIsEmailModalOpen(false)}
+                recipientEmail={email}
+                recipientName={fullName}
+                onSend={handleSendEmail}
+            />
         </div>
     );
 };
-
-const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string; sub: string }> = ({ icon, label, value, sub }) => (
-    <div className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm group hover:border-blue-100 transition-all">
-        <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform">
-            {icon}
-        </div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">{label}</p>
-        <p className="text-3xl font-black text-gray-900 mb-1">{value}</p>
-        <p className="text-xs font-bold text-blue-500">{sub}</p>
-    </div>
-);
 
 const DetailItem: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
     <div className="flex items-center gap-4">

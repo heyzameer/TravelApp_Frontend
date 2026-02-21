@@ -52,6 +52,19 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
+    // Handle Maintenance Mode (503 Service Unavailable)
+    if (error.response?.status === 503) {
+      const maintenanceMessage = (error.response?.data as { message?: string })?.message || "Platform is under maintenance. Please try again later.";
+      toast.error(maintenanceMessage, { id: 'maintenance-toast', duration: 5000 });
+
+      // Logout logic for partner ui
+      authService.clearTokens();
+      if (window.location.pathname !== '/partner/login') {
+        window.location.href = '/partner/login';
+      }
+      return Promise.reject(error);
+    }
+
     // Prevent infinite loop if refresh token itself fails with 401 or if it's already a retry
     if (
       error.response?.status === 401 &&

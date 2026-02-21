@@ -6,8 +6,14 @@ import { useAuth } from '@/context/AuthContext';
 import { Eye, EyeOff, TreePine, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+
 export default function LoginPage() {
     const { login } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirect = searchParams.get('redirect');
+
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -27,6 +33,7 @@ export default function LoginPage() {
 
         try {
             await login(formData);
+            router.push(redirect || '/');
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } };
             setError(error.response?.data?.message || 'Login failed. Please check your credentials.');
@@ -167,7 +174,12 @@ export default function LoginPage() {
 
                         <button
                             type="button"
-                            onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/auth/google`}
+                            onClick={() => {
+                                if (redirect) {
+                                    localStorage.setItem('authRedirect', redirect);
+                                }
+                                window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/auth/google`;
+                            }}
                             className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border-2 border-slate-200 text-slate-700 py-3.5 rounded-xl font-semibold transition-all hover:border-slate-300"
                         >
                             <div className="relative h-5 w-5">

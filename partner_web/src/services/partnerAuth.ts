@@ -43,6 +43,11 @@ class PartnerAuthService {
         return response.data.data;
     }
 
+    async updatePartnerProfile(data: Partial<PartnerProfile>): Promise<PartnerProfile> {
+        const response = await api.patch<ApiResponse<PartnerProfile>>('/partner/profile', data);
+        return response.data.data;
+    }
+
     async verifyAdhar(formData: FormData): Promise<VerificationResponse> {
         const response = await api.post<ApiResponse<VerificationResponse>>('/partner/verify-adhar', formData, {
             headers: {
@@ -74,6 +79,11 @@ class PartnerAuthService {
 
     async updatePropertyDetails(id: string, data: Partial<Property>): Promise<Property> {
         const response = await api.patch<ApiResponse<{ property: Property }>>(`/properties/${id}/details`, data);
+        return response.data.data.property;
+    }
+
+    async togglePropertyStatus(id: string, isListedByPartner: boolean): Promise<Property> {
+        const response = await api.put<ApiResponse<{ property: Property }>>(`/properties/${id}`, { isListedByPartner });
         return response.data.data.property;
     }
 

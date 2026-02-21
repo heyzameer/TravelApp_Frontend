@@ -13,6 +13,10 @@ interface UsersState {
         limit: number;
         total: number;
     };
+    stats: {
+        totalBookings: number;
+        totalAmount: number;
+    };
 }
 
 const initialState: UsersState = {
@@ -24,6 +28,10 @@ const initialState: UsersState = {
         page: 1,
         limit: 10,
         total: 0,
+    },
+    stats: {
+        totalBookings: 0,
+        totalAmount: 0,
     },
 };
 
@@ -57,7 +65,11 @@ export const fetchUserById = createAsyncThunk(
     async (userId: string, { rejectWithValue }) => {
         try {
             const response = await adminService.getUserById(userId);
-            return response.data?.user || response.user;
+            const user = response.data?.user || response.user;
+            if (user && !user.id && user._id) {
+                user.id = user._id;
+            }
+            return user;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to fetch user');
@@ -73,7 +85,11 @@ export const updateUser = createAsyncThunk(
         try {
             const response = await adminService.updateUser(userId, userData);
             console.log('updateUser response:', response);
-            return response.data.user;
+            const user = response.data?.user || response.user;
+            if (user && !user.id && user._id) {
+                user.id = user._id;
+            }
+            return user;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to update user');
@@ -119,12 +135,20 @@ const usersSlice = createSlice({
             .addCase(fetchAllUsers.fulfilled, (state, action) => {
                 console.log('fetchAllUsers fulfilled:', action.payload);
                 state.isLoading = false;
-                state.users = action.payload.data.users.data || [];
+                const rawUsers = action.payload.data.users.data || [];
+                state.users = rawUsers.map((u: User) => ({
+                    ...u,
+                    id: u.id || u._id
+                }));
                 state.pagination = {
-                    page: action.payload.pagination?.page || 1,
-                    limit: action.payload.pagination?.limit || 10,
-                    total: action.payload.pagination?.total || 0,
+                    page: action.payload.data.users.pagination?.page || 1,
+                    limit: action.payload.data.users.pagination?.limit || 10,
+                    total: action.payload.data.users.pagination?.total || 0,
                 };
+                // Store global stats if provided
+                if (action.payload.data.stats) {
+                    state.stats = action.payload.data.stats;
+                }
             })
             .addCase(fetchAllUsers.rejected, (state, action) => {
                 state.isLoading = false;
@@ -149,18 +173,30 @@ const usersSlice = createSlice({
         // Update user
         builder
             .addCase(updateUser.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(updateUser.fulfilled, (state, action) => {
                 console.log('updateUser fulfilled:', action);
                 state.isLoading = false;
-                const index = state.users.findIndex((user) => user.id === action.payload.id);
-                if (index !== -1) {
-                    state.users[index] = action.payload;
+                const updatedUser = action.payload;
+
+                // Ensure id field is set
+                if (updatedUser && !updatedUser.id && updatedUser._id) {
+                    updatedUser.id = updatedUser._id;
                 }
-                if (state.selectedUser?.id === action.payload.id) {
-                    state.selectedUser = action.payload;
+
+                const payloadId = updatedUser.id || updatedUser._id;
+
+                // Update in users list
+                const index = state.users.findIndex((user) => (user.id || user._id) === payloadId);
+                if (index !== -1) {
+                    state.users[index] = updatedUser;
+                }
+
+                // Update selectedUser if it matches
+                const selectedId = state.selectedUser?.id || state.selectedUser?._id;
+                if (selectedId && selectedId === payloadId) {
+                    state.selectedUser = updatedUser;
                 }
             })
             .addCase(updateUser.rejected, (state, action) => {
@@ -171,7 +207,6 @@ const usersSlice = createSlice({
         // Delete user
         builder
             .addCase(deleteUser.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(deleteUser.fulfilled, (state, action) => {

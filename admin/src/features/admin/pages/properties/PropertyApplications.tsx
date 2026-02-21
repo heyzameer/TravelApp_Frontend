@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../../../services/admin';
-import { Search, Eye, Clock, Building, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Eye, Clock, Building, AlertCircle, Loader2, User, Mail } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 interface PropertyApplication {
@@ -13,9 +13,9 @@ interface PropertyApplication {
         city: string;
         state: string;
     };
-    pricePerNight: number;
-    submittedForVerificationAt: string;
-    partner?: {
+    pricePerNight?: number;
+    submittedForVerificationAt?: string;
+    partnerId?: {
         fullName: string;
         email: string;
     };
@@ -38,7 +38,7 @@ const PropertyApplications: React.FC = () => {
             setError(null);
             const response = await adminService.getAllPropertyApplications();
             const data = response.data || response;
-            setApplications(data.properties || data || []);
+            setApplications((data.properties as unknown as PropertyApplication[]) || (data as unknown as PropertyApplication[]) || []);
         } catch (err: unknown) {
             console.error('Failed to fetch property applications:', err);
             const axiosErr = err as { response?: { data?: { message?: string } } };
@@ -56,7 +56,7 @@ const PropertyApplications: React.FC = () => {
     const filteredApplications = applications.filter(app =>
         app.propertyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.address?.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.partner?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
+        app.partnerId?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (isLoading) {
@@ -178,18 +178,38 @@ const PropertyApplications: React.FC = () => {
                                         </div>
 
                                         <div className="flex items-center gap-6 text-sm text-gray-600">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-semibold">Partner:</span>
-                                                <span>{application.partner?.fullName || 'Unknown'}</span>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <User size={13} className="text-gray-400 shrink-0" />
+                                                    <span className="font-semibold">Partner:</span>
+                                                    <span className="font-medium text-gray-800">
+                                                        {application.partnerId?.fullName || <span className="text-red-500 italic">Not populated</span>}
+                                                    </span>
+                                                </div>
+                                                {application.partnerId?.email && (
+                                                    <div className="flex items-center gap-2 ml-0.5">
+                                                        <Mail size={12} className="text-gray-400 shrink-0" />
+                                                        <span className="text-xs text-gray-500">{application.partnerId.email}</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-semibold">Price:</span>
-                                                <span className="text-emerald-600 font-bold">₹{application.pricePerNight}/night</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Clock size={14} className="text-gray-400" />
-                                                <span>Submitted {new Date(application.submittedForVerificationAt).toLocaleDateString()}</span>
-                                            </div>
+                                            {application.pricePerNight !== undefined && application.pricePerNight > 0 ? (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-semibold">Min Price:</span>
+                                                    <span className="text-emerald-600 font-bold">₹{application.pricePerNight.toLocaleString('en-IN')}/night</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-semibold">Price:</span>
+                                                    <span className="text-gray-400 italic text-xs">No rooms configured</span>
+                                                </div>
+                                            )}
+                                            {application.submittedForVerificationAt && (
+                                                <div className="flex items-center gap-2">
+                                                    <Clock size={14} className="text-gray-400" />
+                                                    <span>Submitted {new Date(application.submittedForVerificationAt).toLocaleDateString()}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

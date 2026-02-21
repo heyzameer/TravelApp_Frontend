@@ -166,6 +166,23 @@ function PropertiesContent() {
                                 className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                         </div>
+
+                        {/* Property Type */}
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Property Type</label>
+                            <select
+                                value={filters.propertyType}
+                                onChange={(e) => handleFilterChange('propertyType', e.target.value)}
+                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                            >
+                                <option value="">All Types</option>
+                                <option value="resort">Resort</option>
+                                <option value="homestay">Homestay</option>
+                                <option value="hotel">Hotel</option>
+                                <option value="villa">Villa</option>
+                                <option value="camp">Camp</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div className="flex gap-4">

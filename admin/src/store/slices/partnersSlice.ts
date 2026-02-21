@@ -186,7 +186,7 @@ export const verifyPartnerAadhaar = createAsyncThunk(
 
 export const sendPartnerEmail = createAsyncThunk(
     'partners/sendEmail',
-    async (emailData: { email: string; subject: string; message: string }, { rejectWithValue }) => {
+    async (emailData: Record<string, unknown> | FormData, { rejectWithValue }) => {
         try {
             const response = await adminService.sendPartnerEmail(emailData);
             return response;
@@ -289,7 +289,6 @@ const partnersSlice = createSlice({
         // Update partner
         builder
             .addCase(updatePartner.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(updatePartner.fulfilled, (state, action) => {
@@ -310,7 +309,6 @@ const partnersSlice = createSlice({
         // Approve partner
         builder
             .addCase(approvePartner.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(approvePartner.fulfilled, (state, action) => {
@@ -326,7 +324,6 @@ const partnersSlice = createSlice({
         // Reject partner
         builder
             .addCase(rejectPartner.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(rejectPartner.fulfilled, (state, action) => {
@@ -341,7 +338,6 @@ const partnersSlice = createSlice({
         // Delete partner
         builder
             .addCase(deletePartner.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(deletePartner.fulfilled, (state, action) => {
@@ -359,7 +355,6 @@ const partnersSlice = createSlice({
         // Send partner email
         builder
             .addCase(sendPartnerEmail.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(sendPartnerEmail.fulfilled, (state) => {
@@ -371,7 +366,6 @@ const partnersSlice = createSlice({
             })
             // Verify Partner Aadhaar
             .addCase(verifyPartnerAadhaar.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(verifyPartnerAadhaar.fulfilled, (state, action) => {

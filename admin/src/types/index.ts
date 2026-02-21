@@ -28,6 +28,7 @@ export interface ErrorResponse {
 }
 
 export interface User {
+  _id?: string;
   id: string;
   email: string;
   phone?: string;
@@ -367,12 +368,13 @@ export interface Property {
   isVerified: boolean;
   verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
   onboardingCompleted: boolean;
-  rating?: number;
-  reviewsCount?: number;
+  averageRating?: number;
+  totalReviews?: number;
   partner?: {
     fullName: string;
     profilePicture?: string;
   };
+  destinationId?: string | { _id: string; name: string };
   createdAt: string;
   updatedAt: string;
 }

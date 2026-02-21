@@ -51,11 +51,9 @@ const ReusableTable = <T,>({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
+                        {[...Array(5)].map((_, idx) => (
+                            <SkeletonRow key={idx} />
+                        ))}
                     </tbody>
                 </table>
             </div>

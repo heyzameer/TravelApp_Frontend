@@ -13,7 +13,7 @@ class AuthService {
       refreshToken: string;
     }>>('/auth/login', credentials);
     console.log('response in auth', response);
-    
+
 
     const { user, accessToken, refreshToken } = response.data.data;
     this.setRefreshToken(refreshToken);
@@ -21,14 +21,32 @@ class AuthService {
     return user;
   }
 
-  async adminLoginService(email: string, password: string): Promise<User> {
+  async adminLoginService(email: string, password: string): Promise<User | { user: User; twoFactorRequired: boolean }> {
+    const response = await api.post<ApiResponse<{
+      user: User;
+      accessToken?: string;
+      refreshToken?: string;
+      twoFactorRequired?: boolean;
+    }>>('/admin/login', { email, password });
+    console.log('Admin login response:', response);
+
+    if (response.data.data.twoFactorRequired) {
+      return response.data.data as { user: User; twoFactorRequired: boolean };
+    }
+
+    const { user, accessToken, refreshToken } = response.data.data;
+    if (refreshToken) this.setRefreshToken(refreshToken);
+    if (accessToken) this.setTokens(accessToken);
+    return user;
+  }
+
+  async verifyAdmin2FAService(email: string, otp: string): Promise<User> {
     const response = await api.post<ApiResponse<{
       user: User;
       accessToken: string;
       refreshToken: string;
-    }>>('/admin/login', { email, password });
-    console.log('Admin login response:', response);
-    
+    }>>('/admin/verify-2fa', { email, otp });
+
     const { user, accessToken, refreshToken } = response.data.data;
     this.setRefreshToken(refreshToken);
     this.setTokens(accessToken);
@@ -41,8 +59,8 @@ class AuthService {
       accessToken: string;
       refreshToken: string;
     }>>('/auth/register', userData);
-    console.log('rwsiatration ',response);
-    
+    console.log('rwsiatration ', response);
+
 
     const { user, accessToken, refreshToken } = response.data.data;
     this.setRefreshToken(refreshToken);
@@ -88,20 +106,20 @@ class AuthService {
       return response.data.data;
     } catch (error) {
       console.log('Failed to fetch current user:', error);
-      
+
       this.clearTokens();
       return null;
     }
   }
 
   async refreshAccessToken(): Promise<string | null> {
-    
+
     try {
       const response = await api.post<ApiResponse<{
         accessToken: string;
       }>>('/auth/refresh-token');
       console.log('Token refresh response:', response);
-      const { accessToken} = response.data.data;
+      const { accessToken } = response.data.data;
       this.setTokens(accessToken);
       return accessToken;
     } catch (error) {
@@ -119,7 +137,7 @@ class AuthService {
     localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
   }
 
-  
+
 
   getAccessToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);

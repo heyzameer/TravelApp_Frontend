@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Edit2, Eye, Trash2, UserCheck, TrendingUp, DollarSign, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Eye, Trash2, UserCheck, TrendingUp, DollarSign, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchAllPartners, updatePartner, deletePartner, sendPartnerEmail, setAadharStatusFilter } from '../../../../store/slices/partnersSlice';
 import EmailNotificationModal from '../../components/EmailNotificationModal';
 import VerificationStatusBadge from '../../components/VerificationStatusBadge';
+import type { PartnerUser } from '../../../../types';
 import ReusableTable from '../../../../components/shared/ReusableTable';
 import type { ColumnConfig } from '../../../../components/shared/ReusableTable';
 import useDebounce from '../../../../hooks/useDebounce';
+
+import ConfirmDialogManager from '../../../../utils/confirmDialog';
 
 const PartnersList: React.FC = () => {
     const navigate = useNavigate();
@@ -77,7 +80,16 @@ const PartnersList: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this partner?')) {
+        const confirmed = await ConfirmDialogManager.getInstance().confirm(
+            'Are you sure you want to delete this partner? This will permanently remove their account and all their listed properties.',
+            {
+                title: 'Delete Partner',
+                confirmText: 'Delete',
+                type: 'delete'
+            }
+        );
+
+        if (confirmed) {
             try {
                 await dispatch(deletePartner(id)).unwrap();
                 toast.success('Partner deleted successfully');
@@ -200,16 +212,7 @@ const PartnersList: React.FC = () => {
                         >
                             <Eye size={18} />
                         </button>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                // Optional: Open edit modal
-                            }}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all hover:scale-110"
-                            title="Edit"
-                        >
-                            <Edit2 size={18} />
-                        </button>
+
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -268,7 +271,7 @@ const PartnersList: React.FC = () => {
                         columns={columns}
                         data={[]}
                         isLoading={true}
-                        keyExtractor={() => ''}
+                        keyExtractor={(p: PartnerUser) => (p._id || p.id || p.partnerId)!}
                         emptyMessage="No partners found"
                     />
                 </div>

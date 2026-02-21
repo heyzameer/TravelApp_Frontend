@@ -199,7 +199,6 @@ const propertiesSlice = createSlice({
         // Add property
         builder
             .addCase(addProperty.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(addProperty.fulfilled, (state, action) => {
@@ -214,7 +213,6 @@ const propertiesSlice = createSlice({
         // Update property
         builder
             .addCase(updateProperty.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(updateProperty.fulfilled, (state, action) => {
@@ -235,7 +233,6 @@ const propertiesSlice = createSlice({
         // Delete property
         builder
             .addCase(deleteProperty.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(deleteProperty.fulfilled, (state, action) => {
@@ -253,7 +250,6 @@ const propertiesSlice = createSlice({
         // Toggle property status
         builder
             .addCase(togglePropertyStatus.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(togglePropertyStatus.fulfilled, (state, action) => {
@@ -274,7 +270,6 @@ const propertiesSlice = createSlice({
         // Update document status
         builder
             .addCase(updatePropertyDocumentStatus.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(updatePropertyDocumentStatus.fulfilled, (state, action) => {
@@ -295,7 +290,6 @@ const propertiesSlice = createSlice({
         // Verify property
         builder
             .addCase(verifyProperty.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(verifyProperty.fulfilled, (state, action) => {

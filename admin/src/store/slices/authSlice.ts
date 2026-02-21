@@ -31,13 +31,28 @@ export const adminLogin = createAsyncThunk(
   'auth/adminLogin',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const user = await authService.adminLoginService(credentials.email, credentials.password);
-      return user;
+      const data = await authService.adminLoginService(credentials.email, credentials.password);
+      return data;
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
         return rejectWithValue(error.response?.data?.message || 'Admin login failed');
       }
       return rejectWithValue('Admin login failed');
+    }
+  }
+);
+
+export const verifyAdmin2FA = createAsyncThunk(
+  'auth/verifyAdmin2FA',
+  async (data: { email: string; otp: string }, { rejectWithValue }) => {
+    try {
+      const user = await authService.verifyAdmin2FAService(data.email, data.otp);
+      return user;
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        return rejectWithValue(error.response?.data?.message || '2FA verification failed');
+      }
+      return rejectWithValue('2FA verification failed');
     }
   }
 );
@@ -138,6 +153,24 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(adminLogin.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+        state.isAuthenticated = false;
+      });
+
+    // Verify Admin 2FA
+    builder
+      .addCase(verifyAdmin2FA.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(verifyAdmin2FA.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(verifyAdmin2FA.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
         state.isAuthenticated = false;

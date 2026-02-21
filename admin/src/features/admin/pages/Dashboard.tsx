@@ -1,7 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Building2, TrendingUp, Loader2 } from 'lucide-react';
+import { Calendar, Users, Building2, TrendingUp, Loader2, Check, X } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { adminService } from '../../../services/admin';
+import { toast } from 'react-hot-toast';
+
+interface StatItem {
+    title: string;
+    count: number;
+    trend?: string;
+    icon?: React.ReactNode;
+    color?: string;
+}
+
+interface DashboardItem {
+    id: string;
+    title: string;
+    subtitle: string;
+    status: string;
+    statusColor: string;
+}
+
+interface DashboardData {
+    stats: StatItem[];
+    recentBookings: DashboardItem[];
+    pendingApprovals: DashboardItem[];
+    growthData: { name: string; bookings: number }[];
+}
 
 interface StatsCardProps {
     title: string;
@@ -32,24 +56,51 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, count, icon, color, trend 
 
 const Dashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [dashboardData, setDashboardData] = useState<any>(null);
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [monthRange, setMonthRange] = useState(6);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+    const fetchStats = async () => {
+        try {
+            const response = await adminService.getDashboardStats({ months: monthRange });
+            setDashboardData(response.data);
+        } catch (error) {
+            console.error("Failed to fetch dashboard stats:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const response = await adminService.getDashboardStats({ months: monthRange });
-                setDashboardData(response.data);
-            } catch (error) {
-                console.error("Failed to fetch dashboard stats:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [monthRange]);
+
+    const handleApproval = async (item: DashboardItem, approved: boolean) => {
+        setActionLoading(`${item.id}-${approved ? 'approve' : 'reject'}`);
+        try {
+            if (item.status === 'Refund Requested') {
+                await adminService.processRefund(item.id, approved);
+                toast.success(approved ? 'Refund approved' : 'Refund rejected');
+            } else if (item.status === 'Property Pending') {
+                await adminService.verifyProperty(item.id, approved ? 'verified' : 'rejected');
+                toast.success(approved ? 'Property approved' : 'Property rejected');
+            } else if (item.status === 'Owner Pending') {
+                await adminService.verifyPartnerAadhaar(item.id, approved ? 'approve' : 'reject');
+                toast.success(approved ? 'Owner approved' : 'Owner rejected');
+            } else {
+                toast.error('Action not implemented for this type');
+                return;
+            }
+            // Refresh data
+            await fetchStats();
+        } catch (error: unknown) {
+            const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to process request';
+            toast.error(message);
+        } finally {
+            setActionLoading(null);
+        }
+    };
 
     if (loading && !dashboardData) {
         return (
@@ -65,8 +116,7 @@ const Dashboard: React.FC = () => {
     const { stats = [], recentBookings = [], pendingApprovals = [], growthData = [] } = dashboardData || {};
 
     // Map icons to backend stats
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const statsWithIcons = stats.map((stat: any, index: number) => {
+    const statsWithIcons = stats.map((stat: StatItem, index: number) => {
         const icons = [
             <Calendar size={24} className="text-blue-600" />,
             <Users size={24} className="text-green-600" />,
@@ -96,8 +146,7 @@ const Dashboard: React.FC = () => {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {statsWithIcons.map((stat: any, index: number) => (
+                {statsWithIcons.map((stat, index: number) => (
                     <StatsCard
                         key={index}
                         title={stat.title}
@@ -193,8 +242,7 @@ const Dashboard: React.FC = () => {
                         Recent Bookings
                     </h3>
                     <div className="space-y-3 flex-1">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {recentBookings.length > 0 ? recentBookings.map((booking: any) => (
+                        {recentBookings.length > 0 ? recentBookings.map((booking) => (
                             <div
                                 key={booking.id}
                                 className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
@@ -222,19 +270,46 @@ const Dashboard: React.FC = () => {
                         Approvals Needed
                     </h3>
                     <div className="space-y-3 flex-1">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {pendingApprovals.length > 0 ? pendingApprovals.map((item: any) => (
+                        {pendingApprovals.length > 0 ? pendingApprovals.map((item) => (
                             <div
                                 key={item.id}
                                 className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                             >
-                                <div>
+                                <div className="flex-1">
                                     <p className="font-bold text-gray-800">{item.title}</p>
                                     <p className="text-sm text-gray-500">{item.subtitle}</p>
+                                    <div className="mt-1">
+                                        <span className={`px-2 py-0.5 ${item.statusColor} rounded-full text-[10px] font-bold`}>
+                                            {item.status}
+                                        </span>
+                                    </div>
                                 </div>
-                                <span className={`px-3 py-1 ${item.statusColor} rounded-full text-xs font-bold`}>
-                                    {item.status}
-                                </span>
+                                <div className="flex gap-2 ml-4">
+                                    <button
+                                        onClick={() => handleApproval(item, true)}
+                                        disabled={!!actionLoading}
+                                        className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all disabled:opacity-50"
+                                        title="Approve"
+                                    >
+                                        {actionLoading === `${item.id}-approve` ? (
+                                            <Loader2 size={16} className="animate-spin" />
+                                        ) : (
+                                            <Check size={16} />
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => handleApproval(item, false)}
+                                        disabled={!!actionLoading}
+                                        className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
+                                        title="Reject"
+                                    >
+                                        {actionLoading === `${item.id}-reject` ? (
+                                            <Loader2 size={16} className="animate-spin" />
+                                        ) : (
+                                            <X size={16} />
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         )) : (
                             <div className="flex items-center justify-center h-full text-gray-400 py-10">

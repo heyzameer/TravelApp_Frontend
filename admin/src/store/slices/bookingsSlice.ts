@@ -131,11 +131,21 @@ const bookingsSlice = createSlice({
             })
             .addCase(fetchAllBookings.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.bookings = action.payload;
+                // Deduplicate incoming bookings by _id or id
+                const uniqueBookings = action.payload.reduce((acc: Booking[], current: Booking) => {
+                    const currentId = current._id || current.id;
+                    const exists = acc.find(item => (item._id || item.id) === currentId);
+                    if (!exists) {
+                        acc.push(current);
+                    }
+                    return acc;
+                }, []);
+
+                state.bookings = uniqueBookings;
                 // Auto-filter by status
-                state.pendingBookings = action.payload.filter((b: Booking) => b.status === 'pending');
-                state.confirmedBookings = action.payload.filter((b: Booking) => b.status === 'confirmed');
-                state.completedBookings = action.payload.filter((b: Booking) => b.status === 'completed');
+                state.pendingBookings = uniqueBookings.filter((b: Booking) => b.status === 'pending');
+                state.confirmedBookings = uniqueBookings.filter((b: Booking) => b.status === 'confirmed');
+                state.completedBookings = uniqueBookings.filter((b: Booking) => b.status === 'completed');
             })
             .addCase(fetchAllBookings.rejected, (state, action) => {
                 state.isLoading = false;
@@ -160,16 +170,16 @@ const bookingsSlice = createSlice({
         // Update booking
         builder
             .addCase(updateBooking.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(updateBooking.fulfilled, (state, action) => {
-                state.isLoading = false;
-                const index = state.bookings.findIndex((b) => b.id === action.payload.id);
+                const payloadId = action.payload._id || action.payload.id;
+                const index = state.bookings.findIndex((b) => (b._id || b.id) === payloadId);
                 if (index !== -1) {
                     state.bookings[index] = action.payload;
                 }
-                if (state.selectedBooking?.id === action.payload.id) {
+                const selectedId = state.selectedBooking?._id || state.selectedBooking?.id;
+                if (selectedId === payloadId) {
                     state.selectedBooking = action.payload;
                 }
                 // Re-filter by status
@@ -185,16 +195,17 @@ const bookingsSlice = createSlice({
         // Update booking status
         builder
             .addCase(updateBookingStatus.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(updateBookingStatus.fulfilled, (state, action) => {
                 state.isLoading = false;
-                const index = state.bookings.findIndex((b) => b.id === action.payload.id);
+                const payloadId = action.payload._id || action.payload.id;
+                const index = state.bookings.findIndex((b) => (b._id || b.id) === payloadId);
                 if (index !== -1) {
                     state.bookings[index] = action.payload;
                 }
-                if (state.selectedBooking?.id === action.payload.id) {
+                const selectedId = state.selectedBooking?._id || state.selectedBooking?.id;
+                if (selectedId === payloadId) {
                     state.selectedBooking = action.payload;
                 }
                 // Re-filter by status
@@ -210,16 +221,17 @@ const bookingsSlice = createSlice({
         // Delete booking
         builder
             .addCase(deleteBooking.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(deleteBooking.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.bookings = state.bookings.filter((b) => b.id !== action.payload);
-                state.pendingBookings = state.pendingBookings.filter((b) => b.id !== action.payload);
-                state.confirmedBookings = state.confirmedBookings.filter((b) => b.id !== action.payload);
-                state.completedBookings = state.completedBookings.filter((b) => b.id !== action.payload);
-                if (state.selectedBooking?.id === action.payload) {
+                const deletedId = action.payload;
+                state.bookings = state.bookings.filter((b) => (b._id !== deletedId && b.id !== deletedId));
+                state.pendingBookings = state.pendingBookings.filter((b) => (b._id !== deletedId && b.id !== deletedId));
+                state.confirmedBookings = state.confirmedBookings.filter((b) => (b._id !== deletedId && b.id !== deletedId));
+                state.completedBookings = state.completedBookings.filter((b) => (b._id !== deletedId && b.id !== deletedId));
+                const selectedId = state.selectedBooking?._id || state.selectedBooking?.id;
+                if (selectedId === deletedId) {
                     state.selectedBooking = null;
                 }
             })

@@ -7,6 +7,7 @@ import { fetchPropertyById, updatePropertyDocumentStatus, verifyProperty } from 
 import DocumentViewer from '../../components/DocumentViewer';
 import VerificationStatusBadge from '../../components/VerificationStatusBadge';
 import RejectionReasonModal from '../../components/RejectionReasonModal';
+import MapPopup from '../../components/MapPopup';
 import { toast } from 'react-hot-toast';
 
 const PropertyVerificationDetail: React.FC = () => {
@@ -18,6 +19,7 @@ const PropertyVerificationDetail: React.FC = () => {
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [rejectSection, setRejectSection] = useState<'ownership' | 'tax' | 'banking' | 'final' | null>(null);
     const [isActionLoading, setIsActionLoading] = useState(false);
+    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
     useEffect(() => {
         if (propertyId) {
@@ -258,70 +260,71 @@ const PropertyVerificationDetail: React.FC = () => {
                 </div>
 
                 {/* Sidebar Info */}
-                <div className="space-y-6">
-                    <div className="space-y-6">
-                        {/* Partner Details Card */}
-                        <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm sticky top-24">
-                            <h3 className="text-xl font-bold text-gray-900 mb-6">Partner Details</h3>
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden">
-                                    {selectedProperty.partner?.profilePicture ? (
-                                        <img src={selectedProperty.partner.profilePicture} alt="Partner" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 font-bold text-lg">
-                                            {selectedProperty.partner?.fullName?.charAt(0) || 'U'}
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <p className="font-bold text-gray-900">{selectedProperty.partner?.fullName || 'Unknown Partner'}</p>
-                                    <p className="text-xs text-gray-500">Property Owner</p>
-                                </div>
+                <div className="lg:sticky lg:top-24 space-y-6 h-fit">
+                    {/* Partner Details Card */}
+                    <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
+                        <h3 className="text-xl font-bold text-gray-900 mb-6">Partner Details</h3>
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden">
+                                {selectedProperty.partner?.profilePicture ? (
+                                    <img src={selectedProperty.partner.profilePicture} alt="Partner" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 font-bold text-lg">
+                                        {selectedProperty.partner?.fullName?.charAt(0) || 'U'}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <p className="font-bold text-gray-900">{selectedProperty.partner?.fullName || 'Unknown Partner'}</p>
+                                <p className="text-xs text-gray-500">Property Owner</p>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-                            <h3 className="text-xl font-bold text-gray-900 mb-6">Property Overview</h3>
+                    <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
+                        <h3 className="text-xl font-bold text-gray-900 mb-6">Property Overview</h3>
 
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                                        <DollarSign size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Price per night</p>
-                                        <p className="text-lg font-bold text-gray-900">₹{pricePerNight}</p>
-                                    </div>
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                                    <DollarSign size={20} />
                                 </div>
-
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl">
-                                        <Home size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Capacity</p>
-                                        <p className="font-semibold text-gray-900">{maxGuests} Guests • {totalRooms} Rooms</p>
-                                        <p className="text-xs text-emerald-600 font-medium">{availableRooms} Currently Vacant</p>
-                                    </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Price per night</p>
+                                    <p className="text-lg font-bold text-gray-900">₹{pricePerNight}</p>
                                 </div>
+                            </div>
 
-                                <div className="pt-6 border-t border-gray-100">
-                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Description</p>
-                                    <p className="text-sm text-gray-600 leading-relaxed">
-                                        {description}
-                                    </p>
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl">
+                                    <Home size={20} />
                                 </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Capacity</p>
+                                    <p className="font-semibold text-gray-900">{maxGuests} Guests • {totalRooms} Rooms</p>
+                                    <p className="text-xs text-emerald-600 font-medium">{availableRooms} Currently Vacant</p>
+                                </div>
+                            </div>
 
-                                <div className="pt-6 border-t border-gray-100">
-                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Location</p>
-                                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                                        <p className="text-sm text-gray-700 font-medium mb-1">{address?.street}</p>
-                                        <p className="text-sm text-gray-500">{address?.city}, {address?.state} - {address?.pincode}</p>
-                                        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-blue-600 bg-white border border-blue-100 px-3 py-2 rounded-lg inline-block">
-                                            <MapPin size={14} />
-                                            VIEW ON MAP
-                                        </div>
-                                    </div>
+                            <div className="pt-6 border-t border-gray-100">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Description</p>
+                                <p className="text-sm text-gray-600 leading-relaxed">
+                                    {description}
+                                </p>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Location</p>
+                                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                    <p className="text-sm text-gray-700 font-medium mb-1">{address?.street}</p>
+                                    <p className="text-sm text-gray-500">{address?.city}, {address?.state} - {address?.pincode}</p>
+                                    <button
+                                        onClick={() => setIsMapModalOpen(true)}
+                                        className="mt-4 flex items-center gap-2 text-xs font-bold text-blue-600 bg-white border border-blue-100 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors shadow-sm active:scale-95"
+                                    >
+                                        <MapPin size={14} />
+                                        VIEW ON MAP
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -335,7 +338,20 @@ const PropertyVerificationDetail: React.FC = () => {
                 onSubmit={handleRejectSubmit}
                 isSubmitting={isActionLoading}
             />
-        </div>
+
+            {
+                selectedProperty?.location?.coordinates && (
+                    <MapPopup
+                        isOpen={isMapModalOpen}
+                        onClose={() => setIsMapModalOpen(false)}
+                        lat={selectedProperty.location.coordinates[1]}
+                        lng={selectedProperty.location.coordinates[0]}
+                        propertyName={selectedProperty.propertyName}
+                        address={`${selectedProperty.address.street}, ${selectedProperty.address.city}, ${selectedProperty.address.state} - ${selectedProperty.address.pincode}`}
+                    />
+                )
+            }
+        </div >
     );
 };
 

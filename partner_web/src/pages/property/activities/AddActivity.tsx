@@ -65,6 +65,40 @@ const AddActivity: React.FC = () => {
         e.preventDefault();
         if (!propertyId) return;
 
+        // Frontend Validation
+        if (!formData.name.trim()) {
+            toast.error('Activity name is required');
+            return;
+        }
+        if (!formData.category.trim()) {
+            toast.error('Please specify a category');
+            return;
+        }
+        if (!formData.description.trim()) {
+            toast.error('Description is required');
+            return;
+        }
+        if (!formData.duration || Number(formData.duration) <= 0) {
+            toast.error('Please enter a valid duration');
+            return;
+        }
+        if (!formData.pricePerPerson || Number(formData.pricePerPerson) < 0) {
+            toast.error('Please enter a valid price');
+            return;
+        }
+        if (!formData.maxParticipants || Number(formData.maxParticipants) <= 0) {
+            toast.error('Please enter maximum participants');
+            return;
+        }
+        if (formData.availableTimeSlots.length === 0) {
+            toast.error('Please select at least one available time slot');
+            return;
+        }
+        if (formData.images.length === 0) {
+            toast.error('Please upload at least one image of the activity');
+            return;
+        }
+
         setLoading(true);
         try {
             await dispatch(createActivity({
@@ -78,6 +112,7 @@ const AddActivity: React.FC = () => {
                 }
             })).unwrap();
 
+            toast.success('Activity created successfully');
             navigate(-1);
         } catch (error) {
             const err = error as { message?: string };
@@ -89,86 +124,93 @@ const AddActivity: React.FC = () => {
     };
 
     return (
-        <div className="max-w-3xl mx-auto p-6">
-            <div className="flex items-center gap-4 mb-8">
+        <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-8">
+            <div className="flex items-center gap-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <button
                     onClick={() => navigate(-1)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-3 hover:bg-gray-50 rounded-2xl transition-all text-gray-400 hover:text-gray-600 border border-transparent hover:border-gray-100"
                 >
-                    <ArrowLeft className="w-6 h-6 text-gray-600" />
+                    <ArrowLeft className="w-6 h-6" />
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">Add New Activity</h1>
+                <div>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight uppercase">Add New Activity</h1>
+                    <p className="text-gray-500 font-bold text-xs uppercase tracking-[0.2em] mt-1 ml-1">
+                        Create a new experience for your guests
+                    </p>
+                </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Compass className="w-5 h-5 text-purple-600" />
-                        Activity Details
+            <form onSubmit={handleSubmit} className="space-y-8">
+                <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 md:p-10">
+                    <h2 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-4">
+                        <div className="p-3 bg-purple-50 rounded-2xl">
+                            <Compass className="w-6 h-6 text-purple-600" />
+                        </div>
+                        ACTIVITY DETAILS
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="col-span-2 md:col-span-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Activity Name</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Activity Name</label>
                             <input
                                 type="text"
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
                                 placeholder="e.g., Morning Yoga Session"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all font-bold text-gray-900 shadow-sm placeholder:text-gray-300"
                                 required
                             />
                         </div>
 
                         <div className="col-span-2 md:col-span-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Category</label>
                             <input
                                 type="text"
                                 name="category"
                                 value={formData.category}
                                 onChange={handleChange}
                                 placeholder="e.g., Water Activities, Adventure"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all font-bold text-gray-900 shadow-sm placeholder:text-gray-300"
                             />
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Description</label>
                             <textarea
                                 name="description"
                                 value={formData.description}
                                 onChange={handleChange}
-                                rows={3}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                                rows={4}
+                                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all font-bold text-gray-900 shadow-sm placeholder:text-gray-300 italic"
                                 placeholder="Describe the activity..."
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Duration (minutes)</label>
                             <input
                                 type="number"
                                 name="duration"
                                 value={formData.duration}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all font-bold text-gray-900 shadow-sm placeholder:text-gray-300"
                                 required
                                 min="1"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Price Per Person</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Price Per Person</label>
                             <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-gray-500">₹</span>
+                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-black">₹</span>
                                 <input
                                     type="number"
                                     name="pricePerPerson"
                                     value={formData.pricePerPerson}
                                     onChange={handleChange}
-                                    className="w-full pl-8 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                                    className="w-full pl-12 pr-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all font-bold text-gray-900 shadow-sm"
                                     required
                                     min="0"
                                 />
@@ -176,29 +218,29 @@ const AddActivity: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Max Participants</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Max Participants</label>
                             <input
                                 type="number"
                                 name="maxParticipants"
                                 value={formData.maxParticipants}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all font-bold text-gray-900 shadow-sm"
                                 required
                                 min="1"
                             />
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Available Time Slots</label>
-                            <div className="flex flex-wrap gap-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-3 block">Available Time Slots</label>
+                            <div className="flex flex-wrap gap-3">
                                 {TIME_SLOTS.map(slot => (
                                     <button
                                         key={slot}
                                         type="button"
                                         onClick={() => toggleTimeSlot(slot)}
-                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${formData.availableTimeSlots.includes(slot)
-                                            ? 'bg-purple-50 border-purple-200 text-purple-700'
-                                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                        className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${formData.availableTimeSlots.includes(slot)
+                                            ? 'bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-200'
+                                            : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200 hover:text-gray-600'
                                             }`}
                                     >
                                         {slot}
@@ -208,21 +250,28 @@ const AddActivity: React.FC = () => {
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Activity Images</label>
-                            <input
-                                type="file"
-                                onChange={handleImageUpload}
-                                className="block w-full text-sm text-slate-500
-                                file:mr-4 file:py-2 file:px-4
-                                file:rounded-full file:border-0
-                                file:text-sm file:font-semibold
-                                file:bg-purple-50 file:text-purple-700
-                                hover:file:bg-purple-100"
-                            />
-                            <div className="mt-4 flex flex-wrap gap-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1 mb-4 block">Activity Images</label>
+                            <div className="flex items-center justify-center w-full">
+                                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-100 border-dashed rounded-[2rem] cursor-pointer bg-gray-50/50 hover:bg-gray-50 transition-all group">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <Compass className="w-8 h-8 mb-3 text-gray-300 group-hover:text-purple-500 transition-colors" />
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Click to upload image</p>
+                                    </div>
+                                    <input type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
+                                </label>
+                            </div>
+
+                            <div className="mt-6 flex flex-wrap gap-4">
                                 {formData.images.map((img, idx) => (
-                                    <div key={idx} className="relative h-24 w-24 rounded-md overflow-hidden border">
-                                        <img src={img} alt="Activity" className="h-full w-full object-cover" />
+                                    <div key={idx} className="relative h-24 w-24 rounded-2xl overflow-hidden border border-gray-100 shadow-sm group">
+                                        <img src={img} alt="Activity" className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
+                                            className="absolute top-1 right-1 p-1 bg-white/80 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Save size={14} className="text-red-500 rotate-45" />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -230,14 +279,14 @@ const AddActivity: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex justify-end pt-4">
+                <div className="flex justify-end pr-4">
                     <button
                         type="submit"
                         disabled={loading}
-                        className="px-8 py-3 bg-purple-600 text-white rounded-xl font-medium shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="px-12 py-5 bg-gray-900 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed active:scale-95"
                     >
                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        Create Activity
+                        Save Activity
                     </button>
                 </div>
             </form>

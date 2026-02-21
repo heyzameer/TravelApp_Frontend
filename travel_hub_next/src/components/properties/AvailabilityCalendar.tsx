@@ -38,14 +38,10 @@ export const AvailabilityCalendar: React.FC<AvailabilityProps> = ({ roomId, onDa
                 );
 
                 const blocked: BlockedDate[] = [];
-                if (data && data.availability) {
-                    Object.keys(data.availability).forEach((dateStr) => {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const dayData = (data.availability as any)[dateStr];
-                        // If blocked or no inventory (assuming 1 for now if inventory not managed per room count details here)
-                        // Backend availability response structure: { "YYYY-MM-DD": { price: number, inventory: number, isBlocked: boolean } }
-                        if (dayData.isBlocked || dayData.inventory === 0) {
-                            blocked.push({ date: dateStr, reason: 'Unavailable' });
+                if (data && data.calendar) {
+                    data.calendar.forEach((day: { date: string; isBlocked: boolean }) => {
+                        if (day.isBlocked) {
+                            blocked.push({ date: day.date, reason: 'Unavailable' });
                         }
                     });
                 }
