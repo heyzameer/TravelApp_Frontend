@@ -13,15 +13,15 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar, title = 'Da
             {/* Mobile menu toggle / Desktop toggle when collapsed */}
             {!sidebarOpen && (
                 <button
-                    className="text-gray-500 mr-4"
+                    className="p-2 hover:bg-blue-50 text-gray-500 hover:text-blue-600 rounded-lg transition-all duration-200 mr-4 group"
                     onClick={toggleSidebar}
-                    title="Toggle menu"
+                    title="Expand menu"
                 >
-                    <Menu size={24} />
+                    <Menu size={22} className="group-hover:scale-110 transition-transform" />
                 </button>
             )}
 
-            <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
+            <h1 className="text-xl font-bold text-gray-800 tracking-tight">{title}</h1>
 
             <div className="flex items-center space-x-6">
 
