@@ -92,15 +92,15 @@ export const unblockDates = createAsyncThunk(
 export const setCustomPricing = createAsyncThunk(
     'availability/setCustomPricing',
     async (
-        { roomId, propertyId, date, pricing }: { roomId: string; propertyId: string; date: string; pricing: CustomPricing },
+        { roomId, propertyId, dates, pricing }: { roomId: string; propertyId: string; dates: string[]; pricing: CustomPricing },
         { rejectWithValue }
     ) => {
         try {
             await api.put<ApiResponse<void>>(
                 `/rooms/${roomId}/custom-pricing`,
-                { date, propertyId, pricing }
+                { dates, propertyId, pricing }
             );
-            return { date, pricing };
+            return { dates, pricing };
         } catch (error: unknown) {
             let message = 'Failed to set custom pricing';
             if (error instanceof AxiosError && error.response?.data?.message) {
@@ -195,11 +195,13 @@ const availabilitySlice = createSlice({
         });
         builder.addCase(setCustomPricing.fulfilled, (state, action) => {
             state.loading = false;
-            const { date, pricing } = action.payload;
-            const dayIndex = state.calendar.findIndex(day => day.date === date);
-            if (dayIndex !== -1) {
-                state.calendar[dayIndex].pricing = pricing;
-            }
+            const { dates, pricing } = action.payload;
+            dates.forEach(dateStr => {
+                const dayIndex = state.calendar.findIndex(day => day.date === dateStr);
+                if (dayIndex !== -1) {
+                    state.calendar[dayIndex].pricing = pricing;
+                }
+            });
             toast.success('Custom pricing set successfully');
         });
         builder.addCase(setCustomPricing.rejected, (state, action) => {

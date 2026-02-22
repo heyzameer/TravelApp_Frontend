@@ -4,8 +4,11 @@ import { Search, Trash2, Users, TrendingUp, DollarSign, AlertCircle } from 'luci
 import { toast } from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchAllUsers, updateUser, deleteUser } from '../../../../store/slices/usersSlice';
+import type { User } from '../../../../types';
 import ReusableTable from '../../../../components/shared/ReusableTable';
 import type { ColumnConfig } from '../../../../components/shared/ReusableTable';
+
+import ConfirmDialogManager from '../../../../utils/confirmDialog';
 
 const UsersList: React.FC = () => {
     const navigate = useNavigate();
@@ -28,7 +31,16 @@ const UsersList: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this user?')) {
+        const confirmed = await ConfirmDialogManager.getInstance().confirm(
+            'Are you sure you want to delete this user? This will permanently remove their account and all associated booking history.',
+            {
+                title: 'Delete User',
+                confirmText: 'Delete',
+                type: 'delete'
+            }
+        );
+
+        if (confirmed) {
             try {
                 await dispatch(deleteUser(id)).unwrap();
                 toast.success('User deleted successfully');
@@ -48,7 +60,6 @@ const UsersList: React.FC = () => {
         user.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    console.log("users", users);
     const totalBookings = users.reduce((sum, user) => sum + (user.totalBookings || 0), 0);
     const totalRevenue = users.reduce((sum, user) => sum + (user.totalAmount || 0), 0);
     const activeUsers = users.filter(u => u.isActive).length;
@@ -111,41 +122,47 @@ const UsersList: React.FC = () => {
         {
             header: 'Status',
             key: 'status',
-            render: (user) => (
-                <label
-                    onClick={(e) => e.stopPropagation()}
-                    className="relative inline-flex items-center cursor-pointer group"
-                >
-                    <input
-                        type="checkbox"
-                        checked={user.isActive}
-                        onChange={() => handleStatusToggle(user.id, user.isActive)}
+            render: (user) => {
+                const userId = user.id || user._id;
+                return (
+                    <label
                         onClick={(e) => e.stopPropagation()}
-                        className="sr-only peer"
-                    />
-                    <div className={`w-14 h-7 rounded-full transition-all peer-checked:bg-gradient-to-r peer-checked:from-green-400 peer-checked:to-green-500 bg-gradient-to-r from-gray-300 to-gray-400 shadow-inner`}>
-                        <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${user.isActive ? 'translate-x-7' : 'translate-x-0'}`} />
-                    </div>
-                </label>
-            )
+                        className="relative inline-flex items-center cursor-pointer group"
+                    >
+                        <input
+                            type="checkbox"
+                            checked={user.isActive}
+                            onChange={() => handleStatusToggle(userId!, user.isActive)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="sr-only peer"
+                        />
+                        <div className={`w-14 h-7 rounded-full transition-all peer-checked:bg-gradient-to-r peer-checked:from-green-400 peer-checked:to-green-500 bg-gradient-to-r from-gray-300 to-gray-400 shadow-inner`}>
+                            <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${user.isActive ? 'translate-x-7' : 'translate-x-0'}`} />
+                        </div>
+                    </label>
+                );
+            }
         },
         {
             header: 'Actions',
             key: 'actions',
-            render: (user) => (
-                <div className="inline-flex items-center px-3 py-1">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(user.id);
-                        }}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all hover:scale-110"
-                        title="Delete"
-                    >
-                        <Trash2 size={18} />
-                    </button>
-                </div>
-            )
+            render: (user) => {
+                const userId = user.id || user._id;
+                return (
+                    <div className="inline-flex items-center px-3 py-1">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(userId!);
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all hover:scale-110"
+                            title="Delete"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    </div>
+                );
+            }
         }
     ];
 
@@ -191,7 +208,7 @@ const UsersList: React.FC = () => {
                         columns={columns}
                         data={[]}
                         isLoading={true}
-                        keyExtractor={() => ''}
+                        keyExtractor={(u: User) => (u.id || u._id)!}
                         emptyMessage="No guests found"
                     />
                 </div>
@@ -301,8 +318,8 @@ const UsersList: React.FC = () => {
                     columns={columns}
                     data={filteredUsers}
                     isLoading={false}
-                    onRowClick={(user) => handleViewUser(user.id)}
-                    keyExtractor={(user) => user.id}
+                    onRowClick={(user) => handleViewUser(user.id || user._id || '')}
+                    keyExtractor={(user) => user.id || user._id || ''}
                     emptyMessage="No guests found"
                 />
             </div>

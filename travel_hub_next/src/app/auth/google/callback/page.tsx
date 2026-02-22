@@ -21,8 +21,14 @@ function GoogleCallbackContent() {
             console.log('Updating auth context...');
             // Update auth context state
             checkAuth().then(() => {
-                console.log('Auth check complete, redirecting to home...');
-                router.push('/');
+                console.log('Auth check complete, redirecting...');
+                const redirect = localStorage.getItem('authRedirect');
+                if (redirect) {
+                    localStorage.removeItem('authRedirect');
+                    router.push(redirect);
+                } else {
+                    router.push('/');
+                }
             }).catch(err => {
                 console.error('Auth verification failed:', err);
                 router.push('/auth/login?error=verification_failed');

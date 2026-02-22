@@ -25,7 +25,7 @@ export const fetchAllProperties = createAsyncThunk(
         try {
             const response = await adminService.getAllProperties();
             // response is { success: true, data: { properties: [] } }
-            return response.data?.properties || response.properties || [];
+            return (response.data as unknown as { properties: Property[] })?.properties || (response as unknown as { properties: Property[] }).properties || [];
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to fetch properties');
@@ -42,7 +42,7 @@ export const fetchPropertyById = createAsyncThunk(
             const response = await adminService.getPropertyById(propertyId);
             // response matches ApiResponse<T> from backend: { success: true, data: { property: ... } }
             // adminService returns response.data (the body)
-            return response.data?.property || response.property;
+            return (response.data as unknown as { property: Property })?.property || (response as unknown as { property: Property }).property;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to fetch property');
@@ -57,7 +57,7 @@ export const addProperty = createAsyncThunk(
     async (propertyData: Partial<Property>, { rejectWithValue }) => {
         try {
             const response = await adminService.createProperty(propertyData);
-            return response.data?.property || response.property;
+            return (response.data as unknown as { property: Property })?.property || (response as unknown as { property: Property }).property;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to add property');
@@ -75,7 +75,7 @@ export const updateProperty = createAsyncThunk(
     ) => {
         try {
             const response = await adminService.updateProperty(propertyId, propertyData);
-            return response.data?.property || response.property;
+            return (response.data as unknown as { property: Property })?.property || (response as unknown as { property: Property }).property;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to update property');
@@ -108,7 +108,7 @@ export const togglePropertyStatus = createAsyncThunk(
     ) => {
         try {
             const response = await adminService.updateProperty(propertyId, { isActive });
-            return response.data?.property || response.property;
+            return (response.data as unknown as { property: Property })?.property || (response as unknown as { property: Property }).property;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to toggle property status');
@@ -126,7 +126,7 @@ export const updatePropertyDocumentStatus = createAsyncThunk(
     ) => {
         try {
             const response = await adminService.updatePropertyDocumentStatus(propertyId, section, status, rejectionReason);
-            return response.data?.property || response.property;
+            return (response.data as unknown as { property: Property })?.property || (response as unknown as { property: Property }).property;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to update document status');
@@ -144,7 +144,7 @@ export const verifyProperty = createAsyncThunk(
     ) => {
         try {
             const response = await adminService.verifyProperty(propertyId, status, rejectionReason);
-            return response.data?.property || response.property;
+            return (response.data as unknown as { property: Property })?.property || (response as unknown as { property: Property }).property;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to verify property');
@@ -199,7 +199,6 @@ const propertiesSlice = createSlice({
         // Add property
         builder
             .addCase(addProperty.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(addProperty.fulfilled, (state, action) => {
@@ -214,7 +213,6 @@ const propertiesSlice = createSlice({
         // Update property
         builder
             .addCase(updateProperty.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(updateProperty.fulfilled, (state, action) => {
@@ -235,7 +233,6 @@ const propertiesSlice = createSlice({
         // Delete property
         builder
             .addCase(deleteProperty.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(deleteProperty.fulfilled, (state, action) => {
@@ -253,7 +250,6 @@ const propertiesSlice = createSlice({
         // Toggle property status
         builder
             .addCase(togglePropertyStatus.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(togglePropertyStatus.fulfilled, (state, action) => {
@@ -274,7 +270,6 @@ const propertiesSlice = createSlice({
         // Update document status
         builder
             .addCase(updatePropertyDocumentStatus.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(updatePropertyDocumentStatus.fulfilled, (state, action) => {
@@ -295,7 +290,6 @@ const propertiesSlice = createSlice({
         // Verify property
         builder
             .addCase(verifyProperty.pending, (state) => {
-                state.isLoading = true;
                 state.error = null;
             })
             .addCase(verifyProperty.fulfilled, (state, action) => {

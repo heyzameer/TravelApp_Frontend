@@ -13,6 +13,9 @@ export default defineConfig({
       devOptions: {
         enabled: true
       },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+      },
       includeAssets: ['vite.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'TravelHub Partner',

@@ -64,7 +64,10 @@ export interface Booking {
         totalActivityPrice: number;
     }>;
     activityTotalPrice?: number;
+    mealTotalPrice?: number;
     roomTotalPrice?: number;
+    taxAmount?: number;
+    platformFee?: number;
     packageDiscount?: number;
     finalPrice: number;
     paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';

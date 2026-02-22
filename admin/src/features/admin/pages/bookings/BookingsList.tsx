@@ -5,6 +5,8 @@ import { fetchAllBookings, deleteBooking } from '../../../../store/slices/bookin
 import { Search, Eye, Trash2, Calendar, CheckCircle, Clock, XCircle, AlertCircle, FileText, Filter } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+import ConfirmDialogManager from '../../../../utils/confirmDialog';
+
 const BookingsList: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
@@ -33,7 +35,16 @@ const BookingsList: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this booking?')) {
+        const confirmed = await ConfirmDialogManager.getInstance().confirm(
+            'Are you sure you want to delete this booking? This action cannot be undone.',
+            {
+                title: 'Delete Booking',
+                confirmText: 'Delete',
+                type: 'delete'
+            }
+        );
+
+        if (confirmed) {
             try {
                 await dispatch(deleteBooking(id)).unwrap();
                 toast.success('Booking deleted successfully');

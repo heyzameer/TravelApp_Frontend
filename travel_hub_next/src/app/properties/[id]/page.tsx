@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Star, MapPin, ShieldCheck, Users, Loader2, Compass } from "lucide-react";
 import { useState, useEffect } from "react";
-import { consumerApi, IProperty, IRoom, IPackage, IMealPlanDetail, IActivityDetail } from "@/services/consumerApi";
+import { consumerApi, IProperty, IRoom, IPackage, IMealPlanDetail, IActivityDetail, IBookingPriceResponse } from "@/services/consumerApi";
 import { RoomList } from "@/components/properties/RoomList";
 import { AvailabilityCalendar } from "@/components/properties/AvailabilityCalendar";
 import { format } from "date-fns";
@@ -85,6 +85,77 @@ export default function PropertyDetail() {
         checkBooking();
     }, [isAuthenticated, id]);
 
+    // State for server-side calculated price
+    const [calculatedPrice, setCalculatedPrice] = useState<IBookingPriceResponse | null>(null);
+    const [calculatingPrice, setCalculatingPrice] = useState(false);
+
+    useEffect(() => {
+        const restoreSelection = async () => {
+            if (id) {
+                const saved = localStorage.getItem(`pending_booking_${id}`);
+                if (saved) {
+                    try {
+                        const pending = JSON.parse(saved);
+                        // We need the rooms to find the full room object
+                        const rooms = await consumerApi.getPropertyRooms(id);
+                        const room = rooms.find(r => r._id === pending.roomId);
+
+                        if (room) {
+                            setSelectedRoom(room);
+                            setDateRange({
+                                start: new Date(pending.startDate),
+                                end: new Date(pending.endDate)
+                            });
+                            setGuestCount(pending.guests);
+                            setSelectedMealPlan(pending.mealPlanId);
+                            setSelectedActivities(pending.activityIds);
+                        }
+
+                        // Clear after restoring
+                        localStorage.removeItem(`pending_booking_${id}`);
+                    } catch (error) {
+                        console.error("Failed to restore selection", error);
+                        localStorage.removeItem(`pending_booking_${id}`);
+                    }
+                }
+            }
+        };
+        restoreSelection();
+    }, [id]);
+
+    // Effect to calculate price whenever selection changes
+    useEffect(() => {
+        const fetchCalculatedPrice = async () => {
+            if (!selectedRoom || !dateRange) {
+                setCalculatedPrice(null);
+                return;
+            }
+
+            try {
+                setCalculatingPrice(true);
+                const calcData = {
+                    propertyId: id,
+                    checkIn: dateRange.start.toISOString(),
+                    checkOut: dateRange.end.toISOString(),
+                    rooms: [{ roomId: selectedRoom._id, guests: guestCount }],
+                    mealPlanId: selectedMealPlan,
+                    activityIds: selectedActivities
+                };
+
+                const result = await consumerApi.calculateBookingPrice(calcData);
+                setCalculatedPrice(result);
+            } catch (error) {
+                console.error("Failed to calculate price", error);
+                setCalculatedPrice(null);
+            } finally {
+                setCalculatingPrice(false);
+            }
+        };
+
+        const timer = setTimeout(fetchCalculatedPrice, 500); // Debounce
+        return () => clearTimeout(timer);
+    }, [id, selectedRoom, dateRange, guestCount, selectedMealPlan, selectedActivities]);
+
     const handleDateSelect = (start: Date, end: Date) => {
         setDateRange({ start, end });
     };
@@ -100,6 +171,24 @@ export default function PropertyDetail() {
     const handleReserve = async () => {
         if (!selectedRoom || !dateRange) return;
         setBookingError(null);
+
+        if (!isAuthenticated) {
+            // Save state to local storage
+            const pendingBooking = {
+                propertyId: id,
+                roomId: selectedRoom._id,
+                startDate: dateRange.start.toISOString(),
+                endDate: dateRange.end.toISOString(),
+                guests: guestCount,
+                mealPlanId: selectedMealPlan,
+                activityIds: selectedActivities
+            };
+            localStorage.setItem(`pending_booking_${id}`, JSON.stringify(pendingBooking));
+
+            // Redirect to login with current URL as redirect parameter
+            router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+            return;
+        }
 
         // Validate guest count against room capacity
         if (guestCount > selectedRoom.maxOccupancy) {
@@ -134,6 +223,23 @@ export default function PropertyDetail() {
         } catch (error: unknown) {
             console.error("Availability check failed", error);
             const axiosError = error as AxiosError;
+            if (axiosError.response?.status === 401) {
+                // Save state to local storage before redirecting
+                const pendingBooking = {
+                    propertyId: id,
+                    roomId: selectedRoom._id,
+                    startDate: dateRange.start.toISOString(),
+                    endDate: dateRange.end.toISOString(),
+                    guests: guestCount,
+                    mealPlanId: selectedMealPlan,
+                    activityIds: selectedActivities
+                };
+                localStorage.setItem(`pending_booking_${id}`, JSON.stringify(pendingBooking));
+
+                // If somehow they get a 401, redirect to login
+                router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+                return;
+            }
             if (axiosError.response?.status === 409) {
                 setBookingError("Selected dates are not available for this room.");
             } else {
@@ -146,7 +252,7 @@ export default function PropertyDetail() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="min-h-screen flex items-center justify-center bg-slate-50" suppressHydrationWarning>
                 <Loader2 className="h-12 w-12 animate-spin text-emerald-500" />
             </div>
         );
@@ -154,7 +260,7 @@ export default function PropertyDetail() {
 
     if (!property) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4" suppressHydrationWarning>
                 <h1 className="text-4xl font-bold text-slate-900 mb-4">Property Not Found</h1>
                 <Link href="/destinations" className="bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-600 transition-all">
                     Browse Destinations
@@ -190,7 +296,7 @@ export default function PropertyDetail() {
     }
 
     return (
-        <div className="pt-24 pb-12 bg-slate-50 min-h-screen">
+        <div className="pt-24 pb-12 bg-slate-50 min-h-screen" suppressHydrationWarning>
             <div className="container mx-auto px-6 max-w-7xl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
@@ -447,7 +553,9 @@ export default function PropertyDetail() {
                                 <>
                                     <div className="flex justify-between items-end mb-6">
                                         <div>
-                                            <span className="text-3xl font-black text-slate-900">₹{selectedRoom.basePricePerNight}</span>
+                                            <span className="text-3xl font-black text-slate-900">
+                                                ₹{calculatedPrice && nights > 0 ? Math.round(calculatedPrice.roomTotal / nights) : selectedRoom.basePricePerNight}
+                                            </span>
                                             <span className="text-slate-400 font-medium"> / night</span>
                                         </div>
                                     </div>
@@ -524,32 +632,28 @@ export default function PropertyDetail() {
 
                                     {dateRange && (
                                         <div className="mt-6 space-y-3 pt-6 border-t border-slate-100">
-                                            <div className="flex justify-between text-slate-600 font-medium">
-                                                <span>Room Stay ({nights} nights)</span>
-                                                <span>₹{selectedRoom.basePricePerNight * nights}</span>
-                                            </div>
-
-                                            {selectedMealPlan && property.mealPlans && (
-                                                <div className="flex justify-between text-slate-600 font-medium">
-                                                    <span>Meal Plan</span>
-                                                    <span>₹{(property.mealPlans.find((p: IMealPlanDetail) => p._id === selectedMealPlan)?.pricePerPersonPerDay || 0) * guestCount * nights}</span>
+                                            {calculatingPrice ? (
+                                                <div className="flex justify-center py-4">
+                                                    <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
                                                 </div>
-                                            )}
+                                            ) : (
+                                                <>
+                                                    <div className="flex justify-between text-slate-600 font-medium">
+                                                        <span>Stay Subtotal</span>
+                                                        <span>₹{calculatedPrice ? Number(calculatedPrice.subtotal).toFixed(2) : (selectedRoom.basePricePerNight * nights).toFixed(2)}</span>
+                                                    </div>
 
-                                            {selectedActivities.length > 0 && property.activities && (
-                                                <div className="flex justify-between text-slate-600 font-medium">
-                                                    <span>Activities ({selectedActivities.length})</span>
-                                                    <span>₹{selectedActivities.reduce((acc, aid) => {
-                                                        const act = property.activities?.find((a: IActivityDetail) => a._id === aid);
-                                                        return acc + (act?.pricePerPerson || 0) * guestCount;
-                                                    }, 0)}</span>
-                                                </div>
-                                            )}
+                                                    <div className="flex justify-between text-slate-600 font-medium text-sm">
+                                                        <span>Taxes & Fees</span>
+                                                        <span>₹{calculatedPrice ? (Number(calculatedPrice.taxes) + Number(calculatedPrice.platformFee)).toFixed(2) : '0.00'}</span>
+                                                    </div>
 
-                                            <div className="flex justify-between text-slate-900 font-black text-xl pt-4 border-t border-slate-100">
-                                                <span>Total</span>
-                                                <span>₹{totalPrice}</span>
-                                            </div>
+                                                    <div className="flex justify-between text-slate-900 font-black text-xl pt-4 border-t border-slate-100">
+                                                        <span>Total</span>
+                                                        <span>₹{calculatedPrice ? Number(calculatedPrice.finalPrice).toFixed(2) : Number(totalPrice).toFixed(2)}</span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     )}
                                 </>
@@ -560,13 +664,12 @@ export default function PropertyDetail() {
             </div>
 
             {/* Mobile Sticky Booking Bar */}
-            {/* Mobile Sticky Booking Bar */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 lg:hidden z-40 pb-safe">
                 <div className="container mx-auto flex items-center justify-between gap-4">
                     <div>
                         {selectedRoom ? (
                             <>
-                                <span className="font-bold text-slate-900 text-lg">₹{selectedRoom.basePricePerNight}</span>
+                                <span className="font-bold text-slate-900 text-lg">₹{calculatedPrice ? Math.round(calculatedPrice.finalPrice / nights) : selectedRoom.basePricePerNight}</span>
                                 <span className="text-slate-500 text-sm"> / night</span>
                             </>
                         ) : (

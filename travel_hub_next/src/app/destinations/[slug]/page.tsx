@@ -22,15 +22,14 @@ async function getDestination(slug: string) {
 
 async function getPropertiesForDestination(destinationId: string) {
     try {
-        // Fetch properties filtered by destinationId, verified, and active
-        const res = await axios.get(`${API_URL}/properties/search`, {
+        // Use /public endpoint which enforces isActive, isVerified, and isListedByPartner
+        const res = await axios.get(`${API_URL}/properties/public`, {
             params: {
                 destinationId,
-                status: 'verified', // Backend expects 'verified' or similar based on impl
-                isActive: true
+                limit: 100 // Get all for this destination
             }
         });
-        return res.data.data.results.data || [];
+        return res.data.data.properties.data || [];
     } catch (error) {
         console.error("Failed to fetch properties", error);
         return [];
@@ -73,16 +72,16 @@ export default async function DestinationPage({ params }: { params: Promise<{ sl
             />
 
             {/* Destination Info & Quick Stats */}
-            <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-30 -mt-16">
-                <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 p-8 md:p-12 border border-gray-100 mb-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-                        <div className="lg:col-span-2">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-30 -mt-16" suppressHydrationWarning>
+                <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 p-8 md:p-12 border border-gray-100 mb-12" suppressHydrationWarning>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start" suppressHydrationWarning>
+                        <div className="lg:col-span-2" suppressHydrationWarning>
                             <h2 className="text-3xl font-black text-gray-900 mb-6 leading-tight">About {destination.name}</h2>
                             <p className="text-gray-600 font-medium leading-[1.8] text-lg">
                                 {destination.description}
                             </p>
                         </div>
-                        <div className="bg-emerald-50/50 p-8 rounded-[2rem] border border-emerald-100/50">
+                        <div className="bg-emerald-50/50 p-8 rounded-[2rem] border border-emerald-100/50" suppressHydrationWarning>
                             <h3 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
                                 <span className="p-2 bg-emerald-500 rounded-lg text-white"><MapPin size={20} /></span>
                                 Explore Info
@@ -107,17 +106,17 @@ export default async function DestinationPage({ params }: { params: Promise<{ sl
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12" suppressHydrationWarning>
                     {/* Left Column: Properties */}
-                    <div className="lg:col-span-2 space-y-8">
-                        <div className="flex justify-between items-end pb-4 border-b-2 border-gray-50">
-                            <div>
+                    <div className="lg:col-span-2 space-y-8" suppressHydrationWarning>
+                        <div className="flex justify-between items-end pb-4 border-b-2 border-gray-50" suppressHydrationWarning>
+                            <div suppressHydrationWarning>
                                 <h2 className="text-4xl font-black text-gray-900 leading-none mb-2">Available Stays</h2>
                                 <p className="text-gray-400 font-bold uppercase text-xs tracking-widest">Handpicked for {destination.name}</p>
                             </div>
                             <div className="flex gap-3">
-                                <button className="px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-gray-100 transition-colors">Sort</button>
-                                <button className="px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-gray-100 transition-colors">Filters</button>
+                                {/* <button className="px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-gray-100 transition-colors">Sort</button>
+                                <button className="px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-gray-100 transition-colors">Filters</button> */}
                             </div>
                         </div>
 

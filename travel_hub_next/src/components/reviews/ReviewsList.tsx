@@ -290,6 +290,11 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({
                             onVote={handleVote}
                             onFlag={handleFlag}
                             onDelete={handleDeleteReview}
+                            onEdit={(rev) => {
+                                setEditReviewData(rev);
+                                setIsEditing(true);
+                                setShowWriteReview(true);
+                            }}
                         />
                     ))}
                 </div>

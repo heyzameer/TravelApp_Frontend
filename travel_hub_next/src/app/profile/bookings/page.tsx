@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import bookingService from '@/services/bookingService';
+import bookingService, { Booking } from '@/services/bookingService';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Calendar, MapPin, Loader2, ArrowRight, CheckCircle, Users, Clock, ShieldCheck, XCircle } from 'lucide-react';
 import { format, parseISO, isPast } from 'date-fns';
@@ -31,11 +31,15 @@ export default function MyBookings() {
         fetchBookings();
     }, []);
 
-    const getStatusDisplay = (status: string, approvalStatus: string) => {
+    const getStatusDisplay = (booking: Booking) => {
+        const { status, partnerApprovalStatus, refundStatus, paymentStatus } = booking;
+
+        if (paymentStatus === 'refunded') return { label: 'Refunded', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: <CheckCircle size={12} /> };
+        if (refundStatus === 'requested') return { label: 'Refund Requested', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: <Clock size={12} /> };
         if (status === 'cancelled') return { label: 'Cancelled', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: <XCircle size={12} /> };
-        if (status === 'rejected' || approvalStatus === 'rejected') return { label: 'Rejected', color: 'bg-red-100 text-red-700 border-red-200', icon: <XCircle size={12} /> };
-        if (approvalStatus === 'pending') return { label: 'Pending Approval', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: <Clock size={12} /> };
-        if (status === 'confirmed' || approvalStatus === 'approved') return { label: 'Confirmed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: <CheckCircle size={12} /> };
+        if (status === 'rejected' || partnerApprovalStatus === 'rejected') return { label: 'Rejected', color: 'bg-red-100 text-red-700 border-red-200', icon: <XCircle size={12} /> };
+        if (partnerApprovalStatus === 'pending') return { label: 'Pending Approval', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: <Clock size={12} /> };
+        if (status === 'confirmed' || partnerApprovalStatus === 'approved') return { label: 'Confirmed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: <CheckCircle size={12} /> };
         if (status === 'completed' || status === 'checked_out') return { label: 'Completed', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: <ShieldCheck size={12} /> };
         return { label: status, color: 'bg-gray-100 text-gray-700 border-gray-200', icon: <Clock size={12} /> };
     };
@@ -90,7 +94,7 @@ export default function MyBookings() {
                                 const checkIn = parseISO(booking.checkInDate);
                                 const checkOut = parseISO(booking.checkOutDate);
                                 const isPastTrip = isPast(checkOut);
-                                const displayStatus = getStatusDisplay(booking.status, booking.partnerApprovalStatus);
+                                const displayStatus = getStatusDisplay(booking);
 
                                 return (
                                     <Link

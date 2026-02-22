@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import { Upload, X, MapPin, Trash2, Clock, Calendar } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import { Upload, X, MapPin, Trash2, Clock, Calendar, Search } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import type { PlaceToVisit } from '../../services/destinationService';
@@ -31,6 +31,14 @@ const LocationMarker: React.FC<{ position: [number, number]; setPosition: (pos: 
     return position ? <Marker position={position} /> : null;
 };
 
+const MapController: React.FC<{ center: [number, number] }> = ({ center }) => {
+    const map = useMap();
+    useEffect(() => {
+        map.setView(center, map.getZoom());
+    }, [center, map]);
+    return null;
+};
+
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -58,22 +66,49 @@ const PlaceFormModal: React.FC<PlaceFormModalProps> = ({ place, onSave, onClose 
     const [closeTime, setCloseTime] = useState('18:00');
     const [is24Hours, setIs24Hours] = useState(false);
 
-    useEffect(() => {
-        if (place?.timings) {
-            if (place.timings.toLowerCase().includes('24 hours')) {
-                setIs24Hours(true);
-            } else {
-                // Try to parse "9:00 AM - 6:00 PM"
-                // For now, simple fallback
-            }
-        }
-    }, [place]);
-
     const [uploading, setUploading] = useState(false);
+    const [searching, setSearching] = useState(false);
+    const [pincode, setPincode] = useState('');
     const [mapPosition, setMapPosition] = useState<[number, number]>([
         formData.coordinates.lat,
         formData.coordinates.lng
     ]);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const handlePincodeSearch = async () => {
+        if (!pincode || pincode.length < 5) return;
+
+        try {
+            setSearching(true);
+            const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+            const response = await fetch(`${apiBase}/geocode/pincode?pincode=${encodeURIComponent(pincode)}&country=india`);
+            const json = await response.json();
+            const data = json.data;
+
+            if (data && data.length > 0) {
+                const { lat, lon } = data[0];
+                const newPos: [number, number] = [parseFloat(lat), parseFloat(lon)];
+                setMapPosition(newPos);
+            } else {
+                alert('Location not found for this pincode');
+            }
+        } catch (error) {
+            console.error('Error searching pincode:', error);
+            alert('Error searching for location');
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    const handleCoordinateChange = (field: 'lat' | 'lng', value: string) => {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return;
+
+        setMapPosition(prev => {
+            const newPos: [number, number] = field === 'lat' ? [numValue, prev[1]] : [prev[0], numValue];
+            return newPos;
+        });
+    };
 
     useEffect(() => {
         setFormData(prev => ({
@@ -129,11 +164,28 @@ const PlaceFormModal: React.FC<PlaceFormModalProps> = ({ place, onSave, onClose 
         );
     };
 
+    const validateForm = () => {
+        const newErrors: Record<string, string> = {};
+        if (!formData.name.trim()) newErrors.name = 'Place name is required';
+        else if (formData.name.length < 3) newErrors.name = 'Name must be at least 3 characters';
+
+        if (!formData.description.trim()) newErrors.description = 'Description is required';
+        else if (formData.description.length < 20) newErrors.description = 'Description must be at least 20 characters';
+
+        if (!formData.category) newErrors.category = 'Please select a category';
+
+        if (mapPosition[0] === 0 && mapPosition[1] === 0) {
+            newErrors.location = 'Please set a valid location on the map';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.name || !formData.description) {
-            alert('Please fill in required fields');
+        if (!validateForm()) {
             return;
         }
 
@@ -167,10 +219,13 @@ const PlaceFormModal: React.FC<PlaceFormModalProps> = ({ place, onSave, onClose 
                                 <input
                                     type="text"
                                     value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    required
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, name: e.target.value });
+                                        if (errors.name) setErrors({ ...errors, name: '' });
+                                    }}
+                                    className={`w-full px-4 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
                                 />
+                                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                             </div>
 
                             <div>
@@ -179,11 +234,14 @@ const PlaceFormModal: React.FC<PlaceFormModalProps> = ({ place, onSave, onClose 
                                 </label>
                                 <textarea
                                     value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, description: e.target.value });
+                                        if (errors.description) setErrors({ ...errors, description: '' });
+                                    }}
                                     rows={3}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    required
+                                    className={`w-full px-4 py-2 border ${errors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
                                 />
+                                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
                             </div>
 
                             <div className="grid grid-cols-2 gap-6">
@@ -193,8 +251,11 @@ const PlaceFormModal: React.FC<PlaceFormModalProps> = ({ place, onSave, onClose 
                                     </label>
                                     <select
                                         value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, category: e.target.value });
+                                            if (errors.category) setErrors({ ...errors, category: '' });
+                                        }}
+                                        className={`w-full px-4 py-2 border ${errors.category ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
                                     >
                                         <option value="">Select category</option>
                                         <option value="Temple">Temple</option>
@@ -209,6 +270,7 @@ const PlaceFormModal: React.FC<PlaceFormModalProps> = ({ place, onSave, onClose 
                                         <option value="Nature">Nature</option>
                                         <option value="Other">Other</option>
                                     </select>
+                                    {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
                                 </div>
 
                                 <div>
@@ -300,12 +362,59 @@ const PlaceFormModal: React.FC<PlaceFormModalProps> = ({ place, onSave, onClose 
                     </div>
 
                     {/* Location */}
-                    <div>
-                        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                            <MapPin size={20} />
-                            Location (Click on map to set)
-                        </h3>
-                        <div className="h-64 rounded-lg overflow-hidden border border-gray-300">
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <MapPin size={20} />
+                                Location
+                            </h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Pincode Search</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Enter Pincode"
+                                        value={pincode}
+                                        onChange={(e) => setPincode(e.target.value)}
+                                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handlePincodeSearch}
+                                        disabled={searching}
+                                        className="p-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-300"
+                                    >
+                                        <Search size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Latitude</label>
+                                <input
+                                    type="number"
+                                    step="any"
+                                    value={mapPosition[0]}
+                                    onChange={(e) => handleCoordinateChange('lat', e.target.value)}
+                                    className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Longitude</label>
+                                <input
+                                    type="number"
+                                    step="any"
+                                    value={mapPosition[1]}
+                                    onChange={(e) => handleCoordinateChange('lng', e.target.value)}
+                                    className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500"
+                                />
+                            </div>
+                        </div>
+                        {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
+
+                        <div className="h-64 rounded-lg overflow-hidden border border-gray-300 relative">
                             <MapContainer
                                 center={mapPosition}
                                 zoom={13}
@@ -316,11 +425,12 @@ const PlaceFormModal: React.FC<PlaceFormModalProps> = ({ place, onSave, onClose 
                                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                 />
                                 <LocationMarker position={mapPosition} setPosition={setMapPosition} />
+                                <MapController center={mapPosition} />
                             </MapContainer>
+                            <div className="absolute bottom-2 left-2 z-[400] bg-white/90 px-2 py-1 rounded text-[10px] text-gray-600 border border-gray-200">
+                                Click on map to adjust position
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-600 mt-2">
-                            Coordinates: {mapPosition[0].toFixed(6)}, {mapPosition[1].toFixed(6)}
-                        </p>
                     </div>
 
                     {/* Images */}

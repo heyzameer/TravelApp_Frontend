@@ -71,8 +71,10 @@ export const getPropertyById = async (id: string) => {
 
 export const searchProperties = async (query: string) => {
     try {
-        const response = await api.get(`/properties/search?q=${encodeURIComponent(query)}`);
-        return response.data.data.map(mapBackendToFrontend);
+        const response = await api.get(`/properties/search?search=${encodeURIComponent(query)}`);
+        const rawResults = response.data?.data?.results?.data || response.data?.data?.results || response.data?.data || [];
+        const resultsArray = Array.isArray(rawResults) ? rawResults : [];
+        return resultsArray.map(mapBackendToFrontend);
     } catch (error) {
         console.error('Search properties error:', error);
         return [];

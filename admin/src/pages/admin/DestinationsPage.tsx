@@ -3,6 +3,8 @@ import { Plus, Edit, Trash2, MapPin, Image as ImageIcon, Eye, EyeOff } from 'luc
 import destinationService from '../../services/destinationService';
 import type { Destination } from '../../services/destinationService';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import ConfirmDialogManager from '../../utils/confirmDialog';
 
 const DestinationsPage: React.FC = () => {
     const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -27,34 +29,45 @@ const DestinationsPage: React.FC = () => {
     };
 
     const handleToggleActive = async (id: string, currentStatus: boolean) => {
-        if (!window.confirm(`Are you sure you want to ${currentStatus ? 'deactivate' : 'activate'} this destination?`)) return;
-
         try {
-            await destinationService.updateDestination(id, { isActive: !currentStatus });
-            fetchDestinations();
+            const updated = await destinationService.updateDestination(id, { isActive: !currentStatus });
+            setDestinations(prev => prev.map(d => d._id === id ? updated : d));
+            toast.success(`Destination ${!currentStatus ? 'activated' : 'deactivated'}`);
         } catch (error) {
             console.error('Error toggling destination status:', error);
+            toast.error('Failed to update status');
         }
     };
 
     const handleToggleTrending = async (id: string, currentStatus: boolean) => {
-        if (!window.confirm(`Are you sure you want to ${currentStatus ? 'remove from' : 'add to'} trending?`)) return;
-
         try {
-            await destinationService.updateDestination(id, { trending: !currentStatus });
-            fetchDestinations();
+            const updated = await destinationService.updateDestination(id, { trending: !currentStatus });
+            setDestinations(prev => prev.map(d => d._id === id ? updated : d));
+            toast.success(`${!currentStatus ? 'Added to' : 'Removed from'} trending`);
         } catch (error) {
             console.error('Error toggling trending status:', error);
+            toast.error('Failed to update trending status');
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this destination?')) {
+        const confirmed = await ConfirmDialogManager.getInstance().confirm(
+            'Are you sure you want to delete this destination? This will remove all associated data.',
+            {
+                title: 'Delete Destination',
+                confirmText: 'Delete',
+                type: 'delete'
+            }
+        );
+
+        if (confirmed) {
             try {
                 await destinationService.deleteDestination(id);
-                fetchDestinations();
+                setDestinations(prev => prev.filter(d => d._id !== id));
+                toast.success('Destination deleted');
             } catch (error) {
                 console.error('Error deleting destination:', error);
+                toast.error('Failed to delete destination');
             }
         }
     };

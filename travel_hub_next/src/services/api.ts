@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 import { AuthResponse, LoginCredentials, RegisterCredentials } from '@/types/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
@@ -20,6 +21,21 @@ api.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Response interceptor for maintenance mode
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 503) {
+            const maintenanceMessage = error.response.data?.message || "Platform is under maintenance. Please try again later.";
+            toast.error(maintenanceMessage, {
+                duration: 5000,
+                id: 'maintenance-error'
+            });
+        }
+        return Promise.reject(error);
+    }
+);
 
 export const authService = {
     // User Auth
