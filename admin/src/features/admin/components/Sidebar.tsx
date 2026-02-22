@@ -46,25 +46,25 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     sidebarOpen,
 }) => {
     const content = (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between w-full">
             <div className="flex items-center">
-                <span className={`${sidebarOpen ? 'mr-3' : ''} ${!sidebarOpen ? 'mx-auto' : ''}`}>
+                <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'} transition-transform duration-300 group-hover:scale-110`}>
                     {icon}
                 </span>
-                {sidebarOpen && <span>{title}</span>}
+                {sidebarOpen && <span className="text-sm font-medium whitespace-nowrap">{title}</span>}
             </div>
             {sidebarOpen && (
                 <div className="flex items-center">
                     {badge && (
-                        <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 min-w-5 flex items-center justify-center px-1 mr-2">
+                        <span className="bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-4 flex items-center justify-center px-1 mr-2 shadow-sm">
                             {badge}
                         </span>
                     )}
                     {hasDropdown &&
                         (isExpanded ? (
-                            <ChevronDown size={16} />
+                            <ChevronDown size={14} className="text-gray-400 group-hover:text-blue-500" />
                         ) : (
-                            <ChevronRight size={16} />
+                            <ChevronRight size={14} className="text-gray-400 group-hover:text-blue-500" />
                         ))}
                 </div>
             )}
@@ -76,11 +76,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
             <NavLink
                 to={to}
                 className={({ isActive }) =>
-                    `flex items-center px-4 py-3 cursor-pointer transition-all duration-200 ease-in-out rounded-md mb-1 ${isActive
-                        ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 font-medium shadow-sm'
-                        : 'text-gray-700 hover:bg-gray-100'
+                    `flex items-center px-4 py-3 cursor-pointer transition-all duration-300 ease-in-out rounded-xl mb-1.5 group ${isActive
+                        ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-200 translate-x-1'
+                        : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:translate-x-1'
                     }`
                 }
+                title={!sidebarOpen ? title : ''}
             >
                 {content}
             </NavLink>
@@ -89,8 +90,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 
     return (
         <div
-            className="flex items-center px-4 py-3 cursor-pointer transition-all duration-200 ease-in-out rounded-md mb-1 text-gray-700 hover:bg-gray-100"
+            className={`flex items-center px-4 py-3 cursor-pointer transition-all duration-300 ease-in-out rounded-xl mb-1.5 group ${isExpanded && sidebarOpen
+                ? 'bg-blue-50 text-blue-700 font-semibold'
+                : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:translate-x-1'
+                }`}
             onClick={onClick}
+            title={!sidebarOpen ? title : ''}
         >
             {content}
         </div>
@@ -108,9 +113,9 @@ const DropdownItem: React.FC<DropdownItemProps> = ({ title, to, badge }) => {
         <NavLink
             to={to}
             className={({ isActive }) =>
-                `px-3 py-2 rounded-md cursor-pointer transition-all duration-200 ml-7 text-sm flex items-center justify-between ${isActive
-                    ? 'bg-blue-50 text-blue-600 font-medium'
-                    : 'text-gray-600 hover:bg-gray-100'
+                `px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-300 ml-9 text-[13px] flex items-center justify-between group/sub ${isActive
+                    ? 'bg-blue-50 text-blue-600 font-bold'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-blue-500 hover:translate-x-1'
                 }`
             }
         >
@@ -130,6 +135,11 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
     const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
 
     const toggleDropdown = (item: string) => {
+        if (!sidebarOpen) {
+            setSidebarOpen(true);
+            setExpandedItems([item]);
+            return;
+        }
         setExpandedItems(
             expandedItems.includes(item)
                 ? expandedItems.filter((i) => i !== item)
@@ -146,41 +156,34 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
 
     return (
         <div
-            className={`h-full transform transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64' : 'w-16'
-                } bg-white shadow-lg flex flex-col`}
+            onClick={() => !sidebarOpen && setSidebarOpen(true)}
+            className={`h-full transform transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64' : 'w-20 cursor-pointer hover:bg-gray-50'
+                } bg-white shadow-xl flex flex-col z-30`}
         >
             {/* Logo */}
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <div className={`p-4 border-b border-gray-100 flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
                 <div className="flex items-center">
-                    {sidebarOpen && (
-                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-lg shadow-sm">
-                            <Building2 size={20} />
-                        </div>
-                    )}
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-2.5 rounded-xl shadow-lg shadow-blue-200 ring-2 ring-white">
+                        <Building2 size={sidebarOpen ? 20 : 22} />
+                    </div>
                     {sidebarOpen && (
                         <h1
-                            onClick={() => navigate('/')}
-                            className="ml-3 text-xl font-semibold cursor-pointer"
+                            onClick={(e) => { e.stopPropagation(); navigate('/admin/dashboard'); }}
+                            className="ml-3 text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight cursor-pointer"
                         >
-                            Travel<span className="text-blue-500 font-bold">Hub</span>
+                            Travel<span className="text-blue-600">Hub</span>
                         </h1>
                     )}
-                    {!sidebarOpen && (
-                        <div className="flex justify-center w-full">
-                            <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-1 rounded-lg shadow-sm">
-                                <Building2 size={18} />
-                            </div>
-                        </div>
-                    )}
                 </div>
-                <button
-                    className={`text-gray-500 hover:text-gray-700 transition-colors duration-200 focus:outline-none ${!sidebarOpen && 'hidden'
-                        }`}
-                    onClick={() => setSidebarOpen(false)}
-                    title="Toggle sidebar"
-                >
-                    <ChevronLeft size={20} />
-                </button>
+                {sidebarOpen && (
+                    <button
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 focus:outline-none"
+                        onClick={(e) => { e.stopPropagation(); setSidebarOpen(false); }}
+                        title="Collapse menu"
+                    >
+                        <ChevronLeft size={20} strokeWidth={2.5} />
+                    </button>
+                )}
             </div>
 
             {/* Sidebar content */}
@@ -325,11 +328,11 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                             <p className="text-xs text-gray-500">System Administrator</p>
                         </div>
                         <button
-                            onClick={handleLogout}
-                            className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
+                            onClick={(e) => { e.stopPropagation(); handleLogout(); }}
+                            className="h-9 w-9 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all duration-300 group/logout"
                             title="Logout"
                         >
-                            <LogOut size={18} />
+                            <LogOut size={18} className="group-hover/logout:translate-x-0.5 transition-transform" />
                         </button>
                     </div>
                 </div>
