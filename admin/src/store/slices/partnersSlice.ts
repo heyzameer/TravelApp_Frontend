@@ -57,7 +57,8 @@ export const fetchPartnerRequests = createAsyncThunk(
             const response = await adminService.getAllPartnersRequest();
             // response is { success: true, data: { partners: { data: [...] } } }
             // Access response.data.partners.data if paginated, or response.data.partners if array
-            const partnersData = response.data?.partners?.data || response.data?.partners || [];
+            const respData = response.data as unknown as { partners?: { data?: PartnerUser[] } | PartnerUser[] };
+            const partnersData = (respData?.partners as { data?: PartnerUser[] })?.data || (Array.isArray(respData?.partners) ? respData.partners : []);
             return partnersData;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
@@ -73,7 +74,7 @@ export const fetchPartnerById = createAsyncThunk(
     async (partnerId: string, { rejectWithValue }) => {
         try {
             const response = await adminService.getPartnerById(partnerId);
-            return response.partner;
+            return (response as unknown as { partner: PartnerUser }).partner;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner');
@@ -90,7 +91,7 @@ export const fetchPartnerVerificationDetails = createAsyncThunk(
             const response = await adminService.getPartnerVerificationDetails(partnerId);
             // response is { success: true, data: { partner: ... } }
             // We want to return the partner object directly
-            return response.data?.partner || response.partner || response;
+            return (response.data as unknown as { partner: PartnerUser })?.partner || (response as unknown as { partner: PartnerUser }).partner || response;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to fetch partner verification details');
@@ -108,7 +109,7 @@ export const updatePartner = createAsyncThunk(
     ) => {
         try {
             const response = await adminService.updatePartner(partnerId, partnerData);
-            return response.data?.partner || response.partner || response;
+            return (response.data as unknown as { partner: PartnerUser })?.partner || (response as unknown as { partner: PartnerUser }).partner || response;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to update partner');
@@ -126,7 +127,7 @@ export const approvePartner = createAsyncThunk(
                 status: 'verified',
                 isVerified: true,
             });
-            return response.partner;
+            return (response as unknown as { partner: PartnerUser }).partner;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to approve partner');
@@ -144,7 +145,7 @@ export const rejectPartner = createAsyncThunk(
                 status: 'rejected',
                 isVerified: false,
             });
-            return response.partner;
+            return (response as unknown as { partner: PartnerUser }).partner;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to reject partner');
@@ -174,7 +175,7 @@ export const verifyPartnerAadhaar = createAsyncThunk(
     async ({ partnerId, action, reason }: { partnerId: string; action: 'approve' | 'reject'; reason?: string }, { rejectWithValue }) => {
         try {
             const response = await adminService.verifyPartnerAadhaar(partnerId, action, reason);
-            return response.data?.partner || response.partner || response;
+            return (response.data as { partner: PartnerUser })?.partner || (response as unknown as { partner: PartnerUser }).partner || response;
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
                 return rejectWithValue(error.response?.data?.message || 'Failed to verify partner aadhaar');
@@ -231,11 +232,11 @@ const partnersSlice = createSlice({
                 state.error = null;
             })
             .addCase(fetchAllPartners.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.partners = action.payload.data || [];
-                state.totalPartners = action.payload.pagination?.total || state.partners.length;
-                state.currentPage = action.payload.pagination?.page || 1;
-                state.totalPages = action.payload.pagination?.pages || 1;
+                const pay = action.payload as { data?: PartnerUser[], pagination?: { total?: number, page?: number, pages?: number } };
+                state.partners = pay.data || [];
+                state.totalPartners = pay.pagination?.total || state.partners.length;
+                state.currentPage = pay.pagination?.page || 1;
+                state.totalPages = pay.pagination?.pages || 1;
             })
             .addCase(fetchAllPartners.rejected, (state, action) => {
                 state.isLoading = false;

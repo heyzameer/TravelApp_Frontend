@@ -36,7 +36,7 @@ const SecurityPage: React.FC = () => {
     const fetchHistory = async () => {
         try {
             const response = await adminService.getLoginHistory();
-            const historyData = response.data as any;
+            const historyData = response.data as { history?: LoginHistory[] } | LoginHistory[];
             setHistory(Array.isArray(historyData) ? historyData : (historyData?.history || []));
         } catch (error) {
             console.error("Failed to fetch login history:", error);
@@ -49,7 +49,7 @@ const SecurityPage: React.FC = () => {
         const fetchSettings = async () => {
             try {
                 const response = await adminService.getSettings();
-                setTwoFA((response.data as any).settings.twoFactorAuth || false);
+                setTwoFA((response.data as { settings?: { twoFactorAuth?: boolean } }).settings?.twoFactorAuth || false);
                 await fetchHistory();
             } catch (error) {
                 console.error("Failed to fetch security settings:", error);

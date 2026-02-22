@@ -26,6 +26,10 @@ export const PartnerReviewsList: React.FC<PartnerReviewsListProps> = ({ property
         needsResponse: 0
     });
 
+    // Date Filter States
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
     // Modal States
     const [selectedReview, setSelectedReview] = useState<PartnerReview | null>(null);
     const [isResponding, setIsResponding] = useState(false);
@@ -48,7 +52,9 @@ export const PartnerReviewsList: React.FC<PartnerReviewsListProps> = ({ property
                 page,
                 10,
                 selectedPropertyId || undefined,
-                filterNeedsResponse
+                filterNeedsResponse,
+                startDate || undefined,
+                endDate || undefined
             );
             setReviews(response.data.reviews);
             setStats({
@@ -59,19 +65,13 @@ export const PartnerReviewsList: React.FC<PartnerReviewsListProps> = ({ property
                 verifiedReviews: response.data.stats.verifiedReviews || 0,
                 needsResponse: response.data.stats.needsResponse || 0
             });
-
-            // Update selected review if it's currently open
-            if (selectedReview) {
-                const updated = response.data.reviews.find((r: PartnerReview) => r._id === selectedReview._id);
-                if (updated) setSelectedReview(updated);
-            }
         } catch (error) {
             console.error('Error fetching reviews:', error);
             toast.error('Failed to load reviews');
         } finally {
             setLoading(false);
         }
-    }, [page, selectedPropertyId, filterNeedsResponse, selectedReview]);
+    }, [page, selectedPropertyId, filterNeedsResponse, startDate, endDate]);
 
     useEffect(() => {
         fetchProperties();
@@ -159,12 +159,16 @@ export const PartnerReviewsList: React.FC<PartnerReviewsListProps> = ({ property
             {/* Stats Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { label: 'Portfolio Rating', value: stats.avgRating.toFixed(1), icon: Award, color: 'blue', sub: 'Out of 5.0' },
-                    { label: 'Total Stories', value: stats.totalReviews, icon: MessageSquare, color: 'purple', sub: 'Across properties' },
-                    { label: 'Verified Stays', value: stats.verifiedReviews, icon: CheckCircle, color: 'emerald', sub: 'Confirmed guests' },
-                    { label: 'Needs Attention', value: stats.needsResponse, icon: Filter, color: 'orange', sub: 'Action required' },
-                ].map((item: { label: string; value: string | number; icon: React.ElementType; color: string; sub: string }, idx: number) => (
-                    <div key={idx} className={`bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative overflow-hidden group border-b-4 border-b-${item.color}-500/20`}>
+                    { id: 'rating', label: 'Portfolio Rating', value: stats.avgRating.toFixed(1), icon: Award, color: 'blue', sub: 'Out of 5.0' },
+                    { id: 'total', label: 'Total Stories', value: stats.totalReviews, icon: MessageSquare, color: 'purple', sub: 'Across properties' },
+                    { id: 'verified', label: 'Verified Stays', value: stats.verifiedReviews, icon: CheckCircle, color: 'emerald', sub: 'Confirmed guests' },
+                    { id: 'attention', label: 'Needs Attention', value: stats.needsResponse, icon: Filter, color: 'orange', sub: 'Action required' },
+                ].map((item, idx: number) => (
+                    <div
+                        key={idx}
+                        onClick={() => item.id === 'attention' && setFilterNeedsResponse(true)}
+                        className={`bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative overflow-hidden group border-b-4 border-b-${item.color}-500/20 ${item.id === 'attention' ? 'cursor-pointer hover:bg-orange-50/50' : ''}`}
+                    >
                         <div className={`absolute top-0 right-0 w-24 h-24 bg-${item.color}-50 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500`}></div>
                         <div className="relative z-10">
                             <div className="flex items-center justify-between mb-4">
@@ -213,6 +217,36 @@ export const PartnerReviewsList: React.FC<PartnerReviewsListProps> = ({ property
                             </span>
                         )}
                     </button>
+
+                    <div className="flex items-center gap-2">
+                        <div className="flex flex-col">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">From</label>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                                className="px-4 py-2 bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">To</label>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                                className="px-4 py-2 bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                            />
+                        </div>
+                        {(startDate || endDate) && (
+                            <button
+                                onClick={() => { setStartDate(''); setEndDate(''); setPage(1); }}
+                                className="mt-5 p-2 text-slate-400 hover:text-red-500 transition-all"
+                                title="Clear Dates"
+                            >
+                                <X size={18} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-xl">
@@ -324,25 +358,25 @@ export const PartnerReviewsList: React.FC<PartnerReviewsListProps> = ({ property
                                                 Add Story Reply
                                             </button>
                                         ) : (
-                                            <div className="text-right space-y-3">
+                                            <div className="text-right space-y-4">
                                                 <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                                                     Replied {format(new Date(review.partnerResponse.respondedAt), 'MMM dd')}
                                                 </div>
-                                                <div className="flex items-center justify-end gap-2">
+                                                <div className="flex flex-col gap-2">
                                                     <button
                                                         onClick={() => setSelectedReview(review)}
-                                                        className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                                                        title="Read More"
+                                                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-slate-50 text-slate-700 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all text-[10px] font-bold uppercase tracking-wider border border-slate-100"
                                                     >
-                                                        <Quote size={18} />
+                                                        <Quote size={14} />
+                                                        Read Details
                                                     </button>
                                                     <button
                                                         onClick={() => openResponseModal(review, true)}
-                                                        className="p-3 bg-slate-50 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all"
-                                                        title="Edit Reply"
+                                                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-slate-50 text-slate-700 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all text-[10px] font-bold uppercase tracking-wider border border-slate-100"
                                                     >
-                                                        <Edit2 size={18} />
+                                                        <Edit2 size={14} />
+                                                        Edit Reply
                                                     </button>
                                                 </div>
                                             </div>

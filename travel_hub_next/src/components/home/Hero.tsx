@@ -66,9 +66,9 @@ export const Hero = () => {
     };
 
     return (
-        <div className="relative h-[80vh] w-full bg-gray-900 flex items-center justify-center overflow-hidden" suppressHydrationWarning>
+        <div className="relative h-[80vh] w-full bg-gray-900 flex items-center justify-center" suppressHydrationWarning>
             {/* Background Image with Overlay */}
-            <div className="absolute inset-0 z-0" suppressHydrationWarning>
+            <div className="absolute inset-0 z-0 overflow-hidden" suppressHydrationWarning>
                 <Image
                     src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop"
                     alt="Hero Background"
@@ -168,7 +168,7 @@ export const Hero = () => {
                                                 >
                                                     <div className="w-10 h-10 rounded-xl overflow-hidden relative shrink-0">
                                                         <Image
-                                                            src={prop.coverImage || prop.images?.[0]?.url || 'https://images.unsplash.com/photo-1566073771259-6a8506099945'}
+                                                            src={prop.coverImage || (typeof prop.images?.[0] === 'string' ? prop.images[0] : (prop.images?.[0] as { url?: string })?.url) || 'https://images.unsplash.com/photo-1566073771259-6a8506099945'}
                                                             alt={prop.name}
                                                             fill
                                                             className="object-cover"

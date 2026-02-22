@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { fetchPartnerBookings, approveBooking, rejectBooking, completeBooking, setFilters, checkInBooking, checkOutBooking } from '../../store/slices/bookingsSlice';
+import { fetchPartnerBookings, approveBooking, rejectBooking, completeBooking, setFilters, checkInBooking, checkOutBooking, processRefund } from '../../store/slices/bookingsSlice';
 import { format, isSameDay } from 'date-fns';
 import { Eye, Search, Calendar, XCircle, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -210,9 +210,31 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ externalSearch }) => 
         });
     };
 
+    const handleProcessRefund = (id: string, approved: boolean, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setConfirmModalState({
+            isOpen: true,
+            title: approved ? 'Approve Refund' : 'Reject Refund',
+            message: approved
+                ? 'Are you sure you want to approve this refund? The payment status will be updated to refunded.'
+                : 'Are you sure you want to reject this refund request?',
+            variant: approved ? 'info' : 'danger',
+            onConfirm: async () => {
+                try {
+                    await dispatch(processRefund({ bookingId: id, approved })).unwrap();
+                    toast.success(approved ? 'Refund approved' : 'Refund request rejected');
+                } catch (err: unknown) {
+                    toast.error(typeof err === 'string' ? err : 'Failed to process refund');
+                }
+                setConfirmModalState(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
     const getStatusColor = (status: string, approvalStatus: string, refundStatus?: string) => {
         if (refundStatus === 'requested') return 'text-orange-600 bg-orange-50 border-orange-100';
-        if (refundStatus === 'processed') return 'text-purple-600 bg-purple-50 border-purple-100';
+        if (refundStatus === 'approved') return 'text-purple-600 bg-purple-50 border-purple-100';
+        if (refundStatus === 'rejected') return 'text-red-600 bg-red-50 border-red-100';
         if (approvalStatus === 'pending') return 'text-yellow-600 bg-yellow-50 border-yellow-100';
         if (status === 'confirmed') return 'text-green-600 bg-green-50 border-green-100';
         if (status === 'checked_in') return 'text-blue-600 bg-blue-50 border-blue-100';
@@ -305,7 +327,22 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ externalSearch }) => 
             className: 'text-right',
             render: (booking) => (
                 <div className="flex justify-end items-center gap-2">
-                    {booking.partnerApprovalStatus === 'pending' && booking.status !== 'cancelled' ? (
+                    {booking.refundStatus === 'requested' ? (
+                        <>
+                            <button
+                                onClick={(e) => handleProcessRefund(booking.bookingId, true, e)}
+                                className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg shadow-sm hover:shadow-md transition-all font-bold text-[10px] uppercase tracking-wider"
+                            >
+                                Approve Refund
+                            </button>
+                            <button
+                                onClick={(e) => handleProcessRefund(booking.bookingId, false, e)}
+                                className="px-3 py-1.5 bg-white text-red-600 rounded-lg border border-red-200 hover:bg-red-50 transition-all font-bold text-[10px] uppercase tracking-wider"
+                            >
+                                Reject
+                            </button>
+                        </>
+                    ) : booking.partnerApprovalStatus === 'pending' && booking.status !== 'cancelled' ? (
                         <>
                             <button
                                 onClick={(e) => handleApprove(booking.bookingId, e)}

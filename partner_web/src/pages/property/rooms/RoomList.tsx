@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../../store/index';
 import { fetchRooms, deleteRoom } from '../../../features/rooms/roomSlice';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Home, Users, CheckCircle, XCircle, ArrowLeft, BedDouble, Calendar, Utensils } from 'lucide-react';
-import type { Room } from '../../../types';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Plus, Edit2, Trash2, Home, Users, ArrowLeft, BedDouble, Calendar } from 'lucide-react';
+
 import ConfirmModal from '../../../components/common/ConfirmModal';
 
 const RoomList: React.FC = () => {
@@ -46,173 +46,143 @@ const RoomList: React.FC = () => {
         });
     };
 
+
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 p-6">
-            {/* Back Button */}
-            <button
-                onClick={() => navigate(`/partner/property/${propertyId}`)}
-                className="flex items-center text-gray-500 hover:text-gray-900 font-bold mb-6 transition-colors"
-            >
-                <ArrowLeft size={20} className="mr-2" /> Back to Property Details
-            </button>
-
-            <div className="max-w-7xl mx-auto space-y-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tight">ROOM MANAGEMENT</h1>
-                        <p className="text-gray-500 font-medium mt-1">Manage your property's rooms, pricing, and availability</p>
-                    </div>
-                    <Link
-                        to={`/partner/property/${propertyId}/rooms/add`}
-                        className="flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200"
+        <div className="max-w-7xl mx-auto p-6 md:p-10 space-y-8">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-6">
+                    <button
+                        onClick={() => navigate(`/partner/property/${propertyId}`)}
+                        className="p-3 hover:bg-gray-50 rounded-2xl transition-all text-gray-400 hover:text-gray-600 border border-transparent hover:border-gray-100"
                     >
-                        <Plus size={20} />
-                        ADD NEW ROOM
-                    </Link>
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div>
+                        <h1 className="text-3xl font-black text-gray-900 tracking-tight uppercase flex items-center gap-4">
+                            <div className="p-2 bg-rose-50 rounded-xl">
+                                <Home className="text-rose-600" size={24} />
+                            </div>
+                            Rooms
+                        </h1>
+                        <p className="text-gray-500 font-bold text-xs uppercase tracking-[0.2em] mt-1 ml-1">
+                            Manage inventory and pricing
+                        </p>
+                    </div>
                 </div>
+                <button
+                    onClick={() => navigate('add')}
+                    className="bg-gray-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl hover:shadow-gray-200 active:scale-95"
+                >
+                    <Plus size={20} />
+                    Add New Room
+                </button>
+            </div>
 
-                {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+            {loading ? (
+                <div className="flex justify-center p-20 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-600"></div>
+                </div>
+            ) : rooms.length === 0 ? (
+                <div className="text-center py-24 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm">
+                    <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                        <Home className="h-10 w-10 text-gray-300" />
                     </div>
-                ) : rooms.length === 0 ? (
-                    <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm">
-                        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <Home className="text-red-600" size={32} />
-                        </div>
-                        <h3 className="text-xl font-black text-gray-900 mb-2">No Rooms Added Yet</h3>
-                        <p className="text-gray-500 mb-8 max-w-md mx-auto">Start by adding your first room to start accepting bookings.</p>
-                        <Link
-                            to={`/partner/property/${propertyId}/rooms/add`}
-                            className="inline-flex items-center gap-2 text-red-600 font-bold hover:underline"
-                        >
-                            <Plus size={18} /> Add Room Now
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {rooms.map((room: Room) => (
-                            <div key={room._id} className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
+                    <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-2">No rooms added yet</h3>
+                    <p className="text-gray-500 font-medium mb-8 max-w-sm mx-auto">Start adding rooms to your property to accept bookings.</p>
+                    <button
+                        onClick={() => navigate('add')}
+                        className="text-rose-600 font-black text-sm uppercase tracking-widest hover:underline"
+                    >
+                        Add your first room
+                    </button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {rooms.map((room) => (
+                        <div key={room._id} className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
+                            {/* Image Section */}
+                            <div className="relative h-56 overflow-hidden">
                                 {room.images && room.images.length > 0 ? (
-                                    <div className="relative h-48 overflow-hidden">
-                                        <img
-                                            src={room.images[0].url}
-                                            alt={room.roomNumber}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                        />
-                                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Link
-                                                to={`/partner/property/${propertyId}/rooms/edit/${room._id}`}
-                                                className="p-2 bg-white/90 backdrop-blur rounded-full text-gray-700 hover:text-blue-600 shadow-sm"
-                                            >
-                                                <Edit2 size={16} />
-                                            </Link>
-                                            <button
-                                                onClick={() => handleDelete(room._id)}
-                                                className="p-2 bg-white/90 backdrop-blur rounded-full text-gray-700 hover:text-red-600 shadow-sm"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <img
+                                        src={room.images[0].url}
+                                        alt={room.roomName}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                    />
                                 ) : (
-                                    <div className="h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                        <Home className="text-gray-400" size={48} />
+                                    <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                                        <Home className="text-slate-200" size={48} />
                                     </div>
                                 )}
+                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl text-xs font-black text-gray-900 border border-gray-100">
+                                    ₹{room.basePricePerNight}/night
+                                </div>
+                                <div className="absolute bottom-4 left-4 flex gap-2">
+                                    <span className="bg-rose-500 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                        {room.roomType}
+                                    </span>
+                                    <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${room.isActive ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
+                                        {room.isActive ? 'Active' : 'Hidden'}
+                                    </span>
+                                </div>
+                            </div>
 
-                                <div className="p-6 space-y-4">
+                            {/* Content Section */}
+                            <div className="p-8">
+                                <div className="flex justify-between items-start mb-6">
                                     <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h3 className="text-xl font-black text-gray-900">{room.roomName || room.roomNumber}</h3>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${room.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                {room.isActive ? <CheckCircle size={14} className="inline mr-1" /> : <XCircle size={14} className="inline mr-1" />}
-                                                {room.isActive ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </div>
-                                        <p className="text-sm text-gray-500 font-medium">Room #{room.roomNumber}</p>
-                                        <p className="text-sm text-gray-600 font-bold mt-1">{room.roomType} • {room.sharingType}</p>
+                                        <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase group-hover:text-rose-600 transition-colors">
+                                            {room.roomName || `Room #${room.roomNumber}`}
+                                        </h3>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">
+                                            Unit: {room.roomNumber} • {room.sharingType}
+                                        </p>
                                     </div>
+                                </div>
 
-                                    {/* Room Structure */}
-                                    <div className="space-y-2 py-3 border-y border-gray-100">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <BedDouble size={16} className="text-gray-400" />
-                                            <span className="font-medium">{room.bedConfiguration}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <Users size={16} className="text-gray-400" />
-                                            <span className="font-medium">{room.minOccupancy}-{room.maxOccupancy} Guests (Base: {room.baseOccupancy})</span>
-                                        </div>
-                                        {room.hasSelfCooking && (
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <Utensils size={16} className="text-gray-400" />
-                                                <span className="font-medium">Self Cooking Available</span>
-                                            </div>
-                                        )}
+                                <div className="grid grid-cols-2 gap-4 py-4 border-y border-gray-50 mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <Users size={16} className="text-gray-400" />
+                                        <span className="text-xs font-bold text-gray-600">{room.maxOccupancy} Guests</span>
                                     </div>
-
-                                    {/* Amenities */}
-                                    {room.amenities && room.amenities.length > 0 && (
-                                        <div className="space-y-2">
-                                            <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Amenities</p>
-                                            <div className="flex flex-wrap gap-1">
-                                                {room.amenities.slice(0, 3).map((amenity: string, idx: number) => (
-                                                    <span key={idx} className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-lg font-medium">
-                                                        {amenity}
-                                                    </span>
-                                                ))}
-                                                {room.amenities.length > 3 && (
-                                                    <span className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-lg font-medium">
-                                                        +{room.amenities.length - 3} more
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Pricing */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-red-600 font-black text-lg">
-                                            ₹{room.basePricePerNight}/night
-                                        </div>
-                                        {room.extraPersonCharge > 0 && (
-                                            <div className="text-xs text-gray-500">
-                                                +₹{room.extraPersonCharge}/extra guest
-                                            </div>
-                                        )}
+                                    <div className="flex items-center gap-3">
+                                        <BedDouble size={16} className="text-gray-400" />
+                                        <span className="text-xs font-bold text-gray-600 truncate">{room.bedConfiguration}</span>
                                     </div>
+                                </div>
 
-                                    {/* Action Buttons */}
-                                    <div className="pt-4 space-y-2">
-                                        <Link
-                                            to={`/partner/property/${propertyId}/rooms/${room._id}/availability`}
-                                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-lg transition-colors"
+                                <div className="flex justify-between items-center pt-2">
+                                    <button
+                                        onClick={() => navigate(`${room._id}/availability`)}
+                                        className="flex items-center gap-2 text-rose-600 font-black text-[10px] uppercase tracking-widest hover:underline"
+                                    >
+                                        <Calendar size={14} />
+                                        Availability
+                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => navigate(`edit/${room._id}`)}
+                                            className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"
+                                            title="Edit"
                                         >
-                                            <Calendar size={16} />
-                                            Manage Availability
-                                        </Link>
-                                        <div className="flex gap-2">
-                                            <Link
-                                                to={`/partner/property/${propertyId}/rooms/edit/${room._id}`}
-                                                className="flex-1 py-2 px-4 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold rounded-lg text-center transition-colors"
-                                            >
-                                                Edit
-                                            </Link>
-                                            <button
-                                                onClick={() => handleDelete(room._id)}
-                                                className="flex-1 py-2 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-colors"
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
+                                            <Edit2 size={20} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(room._id)}
+                                            className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 title={confirmModal.title}
@@ -221,6 +191,11 @@ const RoomList: React.FC = () => {
                 onConfirm={confirmModal.onConfirm}
                 onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
             />
+
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+                div { font-family: 'Outfit', sans-serif; }
+            `}</style>
         </div>
     );
 };

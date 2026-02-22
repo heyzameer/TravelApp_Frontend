@@ -140,7 +140,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
 
                 <div className="flex items-center gap-1">
                     {/* Delete/Edit Buttons (only for author and only if they are a customer) */}
-                    {user && user.role === 'customer' && (user.id === review.userId?._id || (user as any)._id === review.userId?._id) && (
+                    {user && user.role === 'customer' && (user.id === review.userId?._id || (user as { _id?: string })._id === review.userId?._id) && (
                         <>
                             {onEdit && (
                                 <button

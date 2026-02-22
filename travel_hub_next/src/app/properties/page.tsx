@@ -4,20 +4,69 @@ import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import api from '@/services/api';
 import { PropertyCard } from '@/components/properties/PropertyCard';
-import { Loader2, Search, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Search, SlidersHorizontal, ChevronLeft, ChevronRight, MapPin, ArrowRight, Building2 } from 'lucide-react';
+import destinationService, { Destination } from '@/services/destinationService';
+import Link from 'next/link';
+import Image from 'next/image';
+
+const DestinationCard = ({ destination }: { destination: Destination }) => (
+    <Link
+        href={`/destinations/${destination.slug}`}
+        className="group relative h-64 rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300"
+    >
+        <div className="absolute inset-0 bg-slate-200">
+            {destination.coverImage ? (
+                <Image
+                    src={destination.coverImage}
+                    alt={destination.name}
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    unoptimized
+                />
+            ) : (
+                <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400">
+                    <MapPin size={48} className="opacity-20" />
+                </div>
+            )}
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end">
+            <div className="flex items-center gap-2 mb-2">
+                <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
+                    Destination
+                </span>
+            </div>
+            <h3 className="text-2xl font-black text-white mb-1 group-hover:text-emerald-400 transition-colors">{destination.name}</h3>
+            <p className="text-white/80 font-medium text-sm line-clamp-2 mb-2">{destination.description}</p>
+            <div className="flex items-center gap-1 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                EXPLORE <ArrowRight size={14} />
+            </div>
+        </div>
+    </Link>
+);
 
 function PropertiesContent() {
     const searchParams = useSearchParams();
     const searchQuery = searchParams.get('search') || '';
 
     const [properties, setProperties] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const [destinations, setDestinations] = useState<Destination[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalProperties, setTotalProperties] = useState(0);
 
-    // Filter states
+    // Local input states for filters
     const [filters, setFilters] = useState({
+        search: searchQuery,
+        minPrice: '',
+        maxPrice: '',
+        guests: '',
+        propertyType: ''
+    });
+
+    // Filters that are actually applied to the API request
+    const [appliedFilters, setAppliedFilters] = useState({
         search: searchQuery,
         minPrice: '',
         maxPrice: '',
@@ -27,40 +76,62 @@ function PropertiesContent() {
 
     const [showFilters, setShowFilters] = useState(false);
 
-    const fetchProperties = useCallback(async () => {
+    const fetchResults = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({
+            // Fetch Properties
+            const propertyParams = new URLSearchParams({
                 page: currentPage.toString(),
                 limit: '12'
             });
 
-            if (filters.search) params.append('search', filters.search);
-            if (filters.minPrice) params.append('minPrice', filters.minPrice);
-            if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
-            if (filters.guests) params.append('guests', filters.guests);
-            if (filters.propertyType) params.append('propertyType', filters.propertyType);
+            if (appliedFilters.search) propertyParams.append('search', appliedFilters.search);
+            if (appliedFilters.minPrice) propertyParams.append('minPrice', appliedFilters.minPrice);
+            if (appliedFilters.maxPrice) propertyParams.append('maxPrice', appliedFilters.maxPrice);
+            if (appliedFilters.guests) propertyParams.append('guests', appliedFilters.guests);
+            if (appliedFilters.propertyType) propertyParams.append('propertyType', appliedFilters.propertyType);
 
-            const response = await api.get(`/properties/public?${params.toString()}`);
+            const propertyPromise = api.get(`/properties/public?${propertyParams.toString()}`);
 
-            if (response.data?.data?.properties?.data) {
-                setProperties(response.data.data.properties.data);
-                setTotalPages(response.data.data.properties.totalPages || 1);
-                setTotalProperties(response.data.data.properties.total || 0);
-            } else if (Array.isArray(response.data?.data)) {
-                setProperties(response.data.data);
+            // Fetch Destinations if there is a search query
+            let destinationPromise: Promise<{ data: { data: Destination[] } }> = Promise.resolve({ data: { data: [] } });
+            if (appliedFilters.search && currentPage === 1) {
+                destinationPromise = destinationService.searchDestinations(appliedFilters.search).then(data => ({ data: { data } }));
             }
+
+            const [propertyResponse, destinationResponse] = await Promise.all([propertyPromise, destinationPromise]);
+
+            // Handle Properties
+            if (propertyResponse.data?.data?.properties?.data) {
+                setProperties(propertyResponse.data.data.properties.data);
+                setTotalPages(propertyResponse.data.data.properties.pagination?.totalPages || 1);
+                setTotalProperties(propertyResponse.data.data.properties.pagination?.total || 0);
+            } else if (Array.isArray(propertyResponse.data?.data)) {
+                setProperties(propertyResponse.data.data);
+                setTotalProperties(propertyResponse.data.data.length);
+                setTotalPages(1);
+            } else {
+                setProperties([]);
+                setTotalProperties(0);
+                setTotalPages(1);
+            }
+
+            // Handle Destinations
+            setDestinations(destinationResponse.data.data || []);
+
         } catch (error) {
-            console.error('Failed to fetch properties:', error);
+            console.error('Failed to fetch results:', error);
             setProperties([]);
+            setTotalProperties(0);
+            setDestinations([]);
         } finally {
             setLoading(false);
         }
-    }, [currentPage, filters]);
+    }, [currentPage, appliedFilters]);
 
     useEffect(() => {
-        fetchProperties();
-    }, [fetchProperties]);
+        fetchResults();
+    }, [fetchResults]);
 
     const handleFilterChange = (key: string, value: string) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -68,31 +139,41 @@ function PropertiesContent() {
 
     const applyFilters = () => {
         setCurrentPage(1);
-        fetchProperties();
+        setAppliedFilters(filters);
         setShowFilters(false);
     };
 
     const clearFilters = () => {
-        setFilters({
+        const resetFilters = {
             search: '',
             minPrice: '',
             maxPrice: '',
             guests: '',
             propertyType: ''
-        });
+        };
+        setFilters(resetFilters);
+        setAppliedFilters(resetFilters);
         setCurrentPage(1);
     };
 
     return (
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl" suppressHydrationWarning>
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-12">
                 <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-4">
-                    {searchQuery ? `Search Results for "${searchQuery}"` : 'All Properties'}
+                    {appliedFilters.search ? `Results for "${appliedFilters.search}"` : 'Explore Stays'}
                 </h1>
-                <p className="text-slate-500 font-medium">
-                    {totalProperties} {totalProperties === 1 ? 'property' : 'properties'} found
-                </p>
+                <div className="flex flex-wrap gap-4 text-slate-500 font-bold text-sm uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5">
+                        <MapPin size={16} className="text-emerald-500" />
+                        {destinations.length} {destinations.length === 1 ? 'Destination' : 'Destinations'}
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 self-center" />
+                    <span className="flex items-center gap-1.5">
+                        <Building2 size={16} className="text-emerald-500" />
+                        {totalProperties} {totalProperties === 1 ? 'Stay' : 'Stays'}
+                    </span>
+                </div>
             </div>
 
             {/* Filters Toggle */}
@@ -202,30 +283,64 @@ function PropertiesContent() {
                 </div>
             )}
 
-            {/* Properties Grid */}
+            {/* Results Section */}
             {loading ? (
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="h-12 w-12 animate-spin text-emerald-500" />
                 </div>
-            ) : properties.length === 0 ? (
-                <div className="text-center py-20">
-                    <Search className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">No properties found</h3>
-                    <p className="text-slate-500 mb-6">Try adjusting your filters or search criteria</p>
+            ) : properties.length === 0 && destinations.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                    <Search className="h-20 w-20 text-slate-200 mx-auto mb-6" />
+                    <h3 className="text-3xl font-black text-slate-900 mb-3 uppercase tracking-tight">Nothing found</h3>
+                    <p className="text-slate-500 mb-8 font-bold text-lg">We couldn&apos;t find any destinations or stays matching your search.</p>
                     <button
                         onClick={clearFilters}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl transition-all active:scale-95"
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 px-10 rounded-2xl transition-all active:scale-95 shadow-lg shadow-emerald-100 uppercase tracking-widest text-sm"
                     >
                         Clear Filters
                     </button>
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-                        {properties.map((property) => (
-                            <PropertyCard key={property._id} property={property} />
-                        ))}
-                    </div>
+                    {/* Destinations Section */}
+                    {destinations.length > 0 && (
+                        <div className="mb-16">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
+                                    <MapPin size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Destinations</h2>
+                                    <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Matched your search query</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {destinations.map((destination) => (
+                                    <DestinationCard key={destination._id} destination={destination} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Properties/Stays Section */}
+                    {properties.length > 0 && (
+                        <div className="mb-12">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
+                                    <Building2 size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Available Stays</h2>
+                                    <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Handpicked for your comfort</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                                {properties.map((property) => (
+                                    <PropertyCard key={property._id} property={property} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Pagination */}
                     {totalPages > 1 && (

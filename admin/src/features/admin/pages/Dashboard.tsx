@@ -63,7 +63,7 @@ const Dashboard: React.FC = () => {
     const fetchStats = async () => {
         try {
             const response = await adminService.getDashboardStats({ months: monthRange });
-            setDashboardData(response.data);
+            setDashboardData(response.data as DashboardData);
         } catch (error) {
             console.error("Failed to fetch dashboard stats:", error);
         } finally {

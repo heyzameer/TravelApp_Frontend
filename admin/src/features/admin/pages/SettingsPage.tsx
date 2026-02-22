@@ -47,7 +47,7 @@ const SettingsPage: React.FC = () => {
         const fetchSettings = async () => {
             try {
                 const response = await adminService.getSettings();
-                setSettings(response.data.settings);
+                setSettings((response.data as { settings: Settings }).settings);
             } catch (error) {
                 console.error("Failed to fetch settings:", error);
             } finally {
@@ -60,7 +60,7 @@ const SettingsPage: React.FC = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await adminService.updateSettings(settings);
+            await adminService.updateSettings(settings as unknown as Record<string, unknown>);
             setNotice({ type: 'success', message: 'Settings saved successfully!' });
             setTimeout(() => setNotice(null), 3000);
         } catch {

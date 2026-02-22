@@ -15,7 +15,7 @@ export const FeaturedProperties = () => {
             try {
                 setLoading(true);
                 // Fetch first 6 properties from the public API
-                const response = await api.get('/properties/public?page=1&limit=6');
+                const response = await api.get('/properties/public?page=1&limit=12');
 
                 if (response.data?.data?.properties?.data) {
                     setProperties(response.data.data.properties.data);

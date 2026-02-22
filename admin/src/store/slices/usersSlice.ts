@@ -65,7 +65,7 @@ export const fetchUserById = createAsyncThunk(
     async (userId: string, { rejectWithValue }) => {
         try {
             const response = await adminService.getUserById(userId);
-            const user = response.data?.user || response.user;
+            const user = (response.data as unknown as { user: User })?.user || (response as unknown as { user: User }).user;
             if (user && !user.id && user._id) {
                 user.id = user._id;
             }
@@ -85,7 +85,7 @@ export const updateUser = createAsyncThunk(
         try {
             const response = await adminService.updateUser(userId, userData);
             console.log('updateUser response:', response);
-            const user = response.data?.user || response.user;
+            const user = (response.data as unknown as { user: User })?.user || (response as unknown as { user: User }).user;
             if (user && !user.id && user._id) {
                 user.id = user._id;
             }
@@ -135,19 +135,20 @@ const usersSlice = createSlice({
             .addCase(fetchAllUsers.fulfilled, (state, action) => {
                 console.log('fetchAllUsers fulfilled:', action.payload);
                 state.isLoading = false;
-                const rawUsers = action.payload.data.users.data || [];
+                const payload = action.payload as unknown as { data: { users: { data: User[], pagination: { page: number, limit: number, total: number } }, stats?: { totalBookings: number, totalAmount: number } } };
+                const rawUsers = payload.data.users.data || [];
                 state.users = rawUsers.map((u: User) => ({
                     ...u,
-                    id: u.id || u._id
+                    id: u.id || u._id || ''
                 }));
                 state.pagination = {
-                    page: action.payload.data.users.pagination?.page || 1,
-                    limit: action.payload.data.users.pagination?.limit || 10,
-                    total: action.payload.data.users.pagination?.total || 0,
+                    page: payload.data.users.pagination?.page || 1,
+                    limit: payload.data.users.pagination?.limit || 10,
+                    total: payload.data.users.pagination?.total || 0,
                 };
                 // Store global stats if provided
-                if (action.payload.data.stats) {
-                    state.stats = action.payload.data.stats;
+                if (payload.data.stats) {
+                    state.stats = payload.data.stats;
                 }
             })
             .addCase(fetchAllUsers.rejected, (state, action) => {

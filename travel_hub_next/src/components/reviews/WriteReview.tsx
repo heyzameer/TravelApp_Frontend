@@ -153,9 +153,25 @@ export const WriteReview: React.FC<WriteReviewProps> = ({
             await onSubmit(submitData);
         } catch (error: unknown) {
             console.error('Error submitting review:', error);
-            const axiosError = error as AxiosError<{ message?: string, data?: Review }>;
-            if (axiosError.response?.data?.message === 'You have already reviewed this property' && axiosError.response?.data?.data) {
-                setDuplicateReview(axiosError.response.data.data);
+            if (error instanceof AxiosError) {
+                const responseData = error.response?.data;
+                const message = responseData?.message;
+                const existingReview = responseData?.data;
+
+                if (message === 'You have already reviewed this property' && existingReview) {
+                    setDuplicateReview(existingReview as Review);
+                    // Scroll to top of modal to show notice
+                    const modalElement = document.querySelector('.overflow-y-auto');
+                    if (modalElement) modalElement.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    setErrors({
+                        submit: message || 'Failed to submit review. Please try again.'
+                    });
+                }
+            } else {
+                setErrors({
+                    submit: 'An unexpected error occurred. Please try again.'
+                });
             }
         } finally {
             setIsSubmitting(false);
@@ -221,6 +237,20 @@ export const WriteReview: React.FC<WriteReviewProps> = ({
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {errors.submit && (
+                            <div className="mx-6 mt-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
+                                <AlertCircle className="text-red-600 shrink-0 mt-0.5" size={20} />
+                                <div className="flex-1">
+                                    <p className="text-red-800 text-sm font-medium">
+                                        {errors.submit}
+                                    </p>
+                                </div>
+                                <button onClick={() => setErrors(prev => ({ ...prev, submit: '' }))}>
+                                    <X size={16} className="text-red-400 hover:text-red-600" />
+                                </button>
                             </div>
                         )}
 

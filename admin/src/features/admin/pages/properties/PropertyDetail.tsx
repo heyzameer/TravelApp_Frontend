@@ -73,11 +73,7 @@ const PropertyDetail: React.FC = () => {
     };
 
     const handleSendEmail = async (formData: FormData) => {
-        try {
-            await adminService.sendPartnerEmail(formData);
-        } catch (err) {
-            throw err;
-        }
+        await adminService.sendPartnerEmail(formData);
     };
 
     if (isLoading && !selectedProperty) {

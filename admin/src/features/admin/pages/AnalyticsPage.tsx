@@ -34,7 +34,7 @@ const AnalyticsPage: React.FC = () => {
             try {
                 setLoading(true);
                 const response = await adminService.getAnalyticsData(timeRange);
-                setData(response.data);
+                setData(response.data as AnalyticsData);
             } catch (error) {
                 console.error("Failed to fetch analytics data:", error);
             } finally {

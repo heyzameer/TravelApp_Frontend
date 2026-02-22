@@ -20,7 +20,7 @@ const AdminLoginPage: React.FC = () => {
     try {
       const result = await dispatch(adminLogin({ email, password })).unwrap();
 
-      if (result.twoFactorRequired) {
+      if ((result as unknown as { twoFactorRequired: boolean }).twoFactorRequired) {
         setShowOtp(true);
         toast.success("Security code sent to your email!");
       } else {

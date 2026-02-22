@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { fetchBookingDetails, approveBooking, rejectBooking, checkInBooking, checkOutBooking, completeBooking } from '../../store/slices/bookingsSlice';
+import { fetchBookingDetails, approveBooking, rejectBooking, checkInBooking, checkOutBooking, completeBooking, processRefund } from '../../store/slices/bookingsSlice';
 import { format } from 'date-fns';
-import { ArrowLeft, User as UserIcon, CreditCard, Building, LogIn, LogOut, CheckCircle, XCircle, MapPin, Home, Utensils, Compass, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, CreditCard, Building, LogIn, LogOut, CheckCircle, XCircle, MapPin, Home, Utensils, Compass, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmModal from '../common/ConfirmModal';
 import PromptModal from '../common/PromptModal';
@@ -160,6 +160,30 @@ const BookingDetails: React.FC = () => {
                     toast.success('Booking marked as completed');
                 } catch (err: unknown) {
                     toast.error(typeof err === 'string' ? err : 'Failed to complete booking');
+                } finally {
+                    setIsActionLoading(false);
+                    setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+                }
+            }
+        });
+    };
+
+    const handleProcessRefund = (approved: boolean) => {
+        if (!id) return;
+        setConfirmModal({
+            isOpen: true,
+            title: approved ? 'Approve Refund' : 'Reject Refund Request',
+            message: approved
+                ? 'Are you sure you want to approve this refund? The payment status will be marked as refunded and the guest will be notified.'
+                : 'Are you sure you want to reject this refund request?',
+            variant: approved ? 'info' : 'danger',
+            onConfirm: async () => {
+                try {
+                    setIsActionLoading(true);
+                    await dispatch(processRefund({ bookingId: id, approved })).unwrap();
+                    toast.success(approved ? 'Refund approved successfully' : 'Refund request rejected');
+                } catch (err: unknown) {
+                    toast.error(typeof err === 'string' ? err : 'Failed to process refund');
                 } finally {
                     setIsActionLoading(false);
                     setConfirmModal((prev) => ({ ...prev, isOpen: false }));
@@ -371,6 +395,44 @@ const BookingDetails: React.FC = () => {
                             </button>
                         </div>
                     </div>
+
+                    {/* Refund Request Section */}
+                    {booking.refundStatus === 'requested' && (
+                        <div className="bg-orange-50 rounded-[2.5rem] p-8 md:p-10 border-2 border-orange-100 shadow-sm space-y-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+                                <CreditCard size={80} className="text-orange-500" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-orange-100 rounded-xl">
+                                        <AlertTriangle size={20} className="text-orange-600" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-orange-900 uppercase tracking-tight">Refund Request</h3>
+                                </div>
+                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-orange-100/50 mb-8">
+                                    <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">Guest Reason</p>
+                                    <p className="text-orange-800 font-bold leading-relaxed">{booking.refundReason || 'No reason provided'}</p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <button
+                                        onClick={() => handleProcessRefund(true)}
+                                        disabled={isActionLoading}
+                                        className="flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                        <CheckCircle size={18} />
+                                        Approve Refund
+                                    </button>
+                                    <button
+                                        onClick={() => handleProcessRefund(false)}
+                                        disabled={isActionLoading}
+                                        className="flex-1 px-6 py-4 bg-white text-orange-600 border-2 border-orange-100 rounded-2xl font-black uppercase tracking-widest hover:bg-orange-50 transition-all active:scale-95"
+                                    >
+                                        Reject Request
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Stay & Guest Info Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

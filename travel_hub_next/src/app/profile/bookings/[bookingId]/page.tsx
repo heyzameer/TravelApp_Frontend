@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Calendar, MapPin, IndianRupee, Users, AlertCircle, XCircle, CheckCircle, Loader2, X, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Calendar, MapPin, IndianRupee, Users, AlertCircle, XCircle, CheckCircle, Loader2, X, AlertTriangle, MessageSquare, Clock } from 'lucide-react';
 import bookingService, { Booking } from '@/services/bookingService';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -83,7 +83,23 @@ export default function BookingDetailPage() {
     };
 
     const getStatusBadge = (booking: Booking) => {
-        const { status, partnerApprovalStatus } = booking;
+        const { status, partnerApprovalStatus, paymentStatus, refundStatus } = booking;
+
+        if (paymentStatus === 'refunded') {
+            return (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-purple-100 text-purple-800">
+                    <CheckCircle size={16} /> Refunded
+                </span>
+            );
+        }
+
+        if (refundStatus === 'requested') {
+            return (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
+                    <Clock size={16} /> Refund Requested
+                </span>
+            );
+        }
 
         if (status === 'cancelled') {
             return (
