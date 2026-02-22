@@ -18,7 +18,9 @@ interface LoginHistory {
 }
 
 const SecurityPage: React.FC = () => {
-    const [showPassword, setShowPassword] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [twoFA, setTwoFA] = useState(false);
     const [loading, setLoading] = useState(true);
     const [toggling, setToggling] = useState(false);
@@ -181,7 +183,7 @@ const SecurityPage: React.FC = () => {
                             <label className="text-sm font-semibold text-gray-700">Current Password</label>
                             <div className="relative">
                                 <input
-                                    type={showPassword ? "text" : "password"}
+                                    type={showCurrentPassword ? "text" : "password"}
                                     name="currentPassword"
                                     value={passwords.currentPassword}
                                     onChange={handlePasswordChange}
@@ -189,10 +191,10 @@ const SecurityPage: React.FC = () => {
                                     className="w-full pl-4 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:outline-none focus:bg-white transition-all text-gray-800"
                                 />
                                 <button
-                                    onClick={() => setShowPassword(!showPassword)}
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                                 >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
                         </div>
@@ -200,25 +202,41 @@ const SecurityPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-gray-700">New Password</label>
-                            <input
-                                type="password"
-                                name="newPassword"
-                                value={passwords.newPassword}
-                                onChange={handlePasswordChange}
-                                placeholder="Min. 8 characters"
-                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:bg-white text-gray-800 transition-all font-mono"
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showNewPassword ? "text" : "password"}
+                                    name="newPassword"
+                                    value={passwords.newPassword}
+                                    onChange={handlePasswordChange}
+                                    placeholder="Min. 8 characters"
+                                    className="w-full pl-4 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:bg-white text-gray-800 transition-all font-mono"
+                                />
+                                <button
+                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-gray-700">Confirm New Password</label>
-                            <input
-                                type="password"
-                                name="confirmPassword"
-                                value={passwords.confirmPassword}
-                                onChange={handlePasswordChange}
-                                placeholder="Confirm new password"
-                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:bg-white text-gray-800 transition-all font-mono"
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    name="confirmPassword"
+                                    value={passwords.confirmPassword}
+                                    onChange={handlePasswordChange}
+                                    placeholder="Confirm new password"
+                                    className="w-full pl-4 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:bg-white text-gray-800 transition-all font-mono"
+                                />
+                                <button
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div className="flex justify-start">
