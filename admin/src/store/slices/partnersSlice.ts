@@ -232,6 +232,7 @@ const partnersSlice = createSlice({
                 state.error = null;
             })
             .addCase(fetchAllPartners.fulfilled, (state, action) => {
+                state.isLoading = false;
                 const pay = action.payload as { data?: PartnerUser[], pagination?: { total?: number, page?: number, pages?: number } };
                 state.partners = pay.data || [];
                 state.totalPartners = pay.pagination?.total || state.partners.length;
