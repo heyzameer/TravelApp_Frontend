@@ -52,68 +52,55 @@ LetsGoto is a **multi-portal travel booking platform** serving three distinct us
 
 ## 2. High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                            CLIENT LAYER                                  │
-│                                                                          │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐      │
-│  │   letsgoto.in    │  │ partner.letsgoto │  │  admin.letsgoto  │      │
-│  │  (Next.js SSR)   │  │  (React Vite PWA)│  │  (React Vite PWA)│      │
-│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘      │
-│           └──────────────────────┴──────────────────────┘               │
-│                                  │ HTTPS / WSS                           │
-└──────────────────────────────────┼──────────────────────────────────────┘
-                                   │
-                    ┌──────────────▼──────────────┐
-                    │       AWS Route 53 / DNS      │
-                    │      api.letsgoto.in          │
-                    └──────────────┬───────────────┘
-                                   │
-                    ┌──────────────▼───────────────┐
-                    │      Nginx (Reverse Proxy)    │
-                    │    SSL Termination (EC2)      │
-                    └──────────────┬───────────────┘
-                                   │
-┌──────────────────────────────────▼──────────────────────────────────────┐
-│                        APPLICATION LAYER (Docker)                        │
-│                                                                          │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │                    Node.js / Express Server                       │    │
-│  │                                                                   │    │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────────┐ │    │
-│  │  │  REST API   │  │  Socket.IO  │  │  Passport.js (OAuth 2.0) │ │    │
-│  │  │  (15 routes)│  │  (Real-time)│  │  Google Auth             │ │    │
-│  │  └──────┬──────┘  └──────┬──────┘  └──────────────────────────┘ │    │
-│  │         │                │                                        │    │
-│  │  ┌──────▼────────────────▼──────────────────────────────────┐   │    │
-│  │  │              Middleware Pipeline                           │   │    │
-│  │  │  Helmet · CORS · Rate Limit · JWT Auth · Morgan Logger   │   │    │
-│  │  └──────────────────────────┬────────────────────────────────┘   │    │
-│  │                             │                                      │    │
-│  │  ┌──────────────────────────▼────────────────────────────────┐   │    │
-│  │  │              Service Layer (tsyringe DI)                   │   │    │
-│  │  │  Auth · Booking · Partner · Property · Availability ·     │   │    │
-│  │  │  Payment · Review · OCR · Socket · Email · Location ···   │   │    │
-│  │  └──────────────────────────┬────────────────────────────────┘   │    │
-│  │                             │                                      │    │
-│  │  ┌──────────────────────────▼────────────────────────────────┐   │    │
-│  │  │              Repository Layer                              │   │    │
-│  │  │  (Interface-driven, Mongoose ORM)                         │   │    │
-│  │  └──────────────────────────┬────────────────────────────────┘   │    │
-│  └─────────────────────────────┼──────────────────────────────────── ┘   │
-└─────────────────────────────────┼────────────────────────────────────────┘
-                                  │
-          ┌───────────────────────┼───────────────────────┐
-          │                       │                       │
-┌─────────▼──────────┐  ┌────────▼────────┐  ┌─────────▼──────────┐
-│    MongoDB Atlas    │  │      Redis      │  │      AWS S3         │
-│  (Primary DB)       │  │ (Cache/PubSub)  │  │  (File Storage)     │
-└────────────────────┘  └─────────────────┘  └────────────────────┘
-          │
-┌─────────▼──────────────────────────────────────────────┐
-│                  External Services                       │
-│  Razorpay · Nodemailer/SES · Nominatim · Google Gemini  │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:white;
+    classDef client fill:#4285F4,stroke:#000000,stroke-width:1px,color:white;
+    classDef proxy fill:#009639,stroke:#000000,stroke-width:1px,color:white;
+    classDef node fill:#339933,stroke:#000000,stroke-width:1px,color:white;
+    classDef db fill:#47A248,stroke:#000000,stroke-width:1px,color:white;
+
+    subgraph Clients["CLIENT LAYER"]
+        UserApp["User App<br/>(letsgoto.in)<br/>Next.js SSR"]:::client
+        PartnerApp["Partner App<br/>(partner.letsgoto.in)<br/>React Vite PWA"]:::client
+        AdminApp["Admin App<br/>(admin.letsgoto.in)<br/>React Vite PWA"]:::client
+    end
+
+    Route53["AWS Route 53<br/>(api.letsgoto.in)"]:::aws
+    Nginx["Nginx Reverse Proxy<br/>EC2"]:::proxy
+
+    subgraph AppLayer["APPLICATION LAYER (Docker)"]
+        subgraph NodeServer["Node.js / Express Server"]
+            API["REST API (15 routes)"]:::node
+            Socket["Socket.IO (Real-time)"]:::node
+            Passport["Passport.js (OAuth 2.0)"]:::node
+            
+            Middleware["Middleware Pipeline<br/>Helmet, CORS, Rate Limit, Auth, Morgan"]:::node
+            ServiceLayer["Service Layer (tsyringe DI)<br/>Auth, Booking, Partner, Property,..."]:::node
+            RepoLayer["Repository Layer<br/>(Interface-driven, Mongoose)"]:::node
+            
+            API --> Middleware
+            Socket --> Middleware
+            Passport --> Middleware
+            Middleware --> ServiceLayer
+            ServiceLayer --> RepoLayer
+        end
+    end
+
+    subgraph DataExternal["DATA & EXTERNAL SERVICES"]
+        MongoDB["MongoDB Atlas"]:::db
+        Redis["Redis (Cache/PubSub)"]:::db
+        S3["AWS S3 (File Storage)"]:::aws
+        ExtServ["External Services<br/>Razorpay, NodeMailer, Nominatim, Gemini"]
+    end
+
+    Clients -->|HTTPS / WSS| Route53
+    Route53 --> Nginx
+    Nginx --> NodeServer
+    RepoLayer --> MongoDB
+    RepoLayer --> Redis
+    ServiceLayer --> S3
+    ServiceLayer --> ExtServ
 ```
 
 ---
@@ -173,32 +160,20 @@ Internal governance panel.
 
 The backend follows a strict **4-layer architecture** enforced through TypeScript interfaces:
 
-```
-HTTP Request
-    │
-    ▼
-┌─────────────────────────────┐
-│      Controller Layer        │ ← Request parsing, validation, response
-│  (15 controllers)            │   shaping. No business logic.
-└─────────────┬───────────────┘
-              │ calls interface
-              ▼
-┌─────────────────────────────┐
-│      Service Layer           │ ← All business logic, orchestration,
-│  (21 services)               │   cross-domain operations
-└─────────────┬───────────────┘
-              │ calls interface
-              ▼
-┌─────────────────────────────┐
-│      Repository Layer        │ ← Data access abstraction. Mongoose
-│  (interface-driven)          │   implementations behind interfaces.
-└─────────────┬───────────────┘
-              │
-              ▼
-┌─────────────────────────────┐
-│      Data Layer              │ ← Mongoose models, MongoDB Atlas
-│  (23 models)                 │
-└─────────────────────────────┘
+```mermaid
+graph TD
+    classDef layer fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef note fill:#ffebee,stroke:#ffcdd2,stroke-width:1px;
+    
+    Req[HTTP Request] --> CL[Controller Layer<br/>15 controllers]:::layer
+    CL -.->|calls interface| SL[Service Layer<br/>21 services]:::layer
+    SL -.->|calls interface| RL[Repository Layer<br/>interface-driven]:::layer
+    RL --> DL[Data Layer<br/>23 models]:::layer
+    
+    N1[Request parsing, validation, response shaping.<br/>No business logic.]:::note -.-> CL
+    N2[All business logic, orchestration,<br/>cross-domain operations.]:::note -.-> SL
+    N3[Data access abstraction.<br/>Mongoose implementations behind interfaces.]:::note -.-> RL
+    N4[Mongoose models, MongoDB Atlas.]:::note -.-> DL
 ```
 
 ### 4.2 Dependency Injection (tsyringe)
@@ -264,28 +239,36 @@ Incoming Request
 
 ### 5.1 Entity Relationship Overview
 
-```
-Partner ──┬── Property ──┬── Room ──── RoomAvailability
-          │              ├── MealPlan
-          │              ├── Activity
-          │              └── Package
-          │
-User ─────┬── Booking ───┬── room_bookings[]
-          │    │          ├── activity_bookings[]
-          │    │          └── meal_plan_ref
-          │    │
-          ├── Review ─────── (tied to a verified Booking)
-          ├── OTP
-          ├── LoginSession
-          ├── Wallet
-          └── Preference
-
-Platform
-    ├── Destination
-    ├── Transaction
-    ├── Invoice
-    ├── Order
-    └── SystemSetting
+```mermaid
+erDiagram
+    PARTNER ||--o{ PROPERTY : owns
+    PROPERTY ||--o{ ROOM : has
+    PROPERTY ||--o{ MEAL_PLAN : offers
+    PROPERTY ||--o{ ACTIVITY : provides
+    PROPERTY ||--o{ PACKAGE : bundles
+    ROOM ||--o{ ROOM_AVAILABILITY : maintains
+    
+    USER ||--o{ BOOKING : makes
+    USER ||--o{ REVIEW : writes
+    USER ||--o{ OTP : requests
+    USER ||--o{ LOGIN_SESSION : generates
+    USER ||--o| WALLET : has
+    USER ||--o| PREFERENCE : sets
+    
+    BOOKING ||--o{ ROOM_BOOKING : contains
+    BOOKING ||--o{ ACTIVITY_BOOKING : contains
+    BOOKING }o--o| MEAL_PLAN : includes
+    
+    REVIEW }o--|| BOOKING : verifies
+    
+    SYSTEM_SETTING {
+        int platformFeePercent
+        int taxPercent
+    }
+    DESTINATION
+    TRANSACTION
+    INVOICE
+    ORDER
 ```
 
 ### 5.2 Core Document Schemas
@@ -401,16 +384,16 @@ Errors:
 
 The platform uses a **dual-token JWT** system:
 
-```
-┌────────────────┐     POST /auth/login     ┌───────────────────┐
-│     Client      │ ───────────────────────► │ AuthService        │
-│                 │ ◄─────────────────────── │                    │
-│  Access Token   │   accessToken (15m)      │ - verify password  │
-│  Refresh Token  │   refreshToken (7d)      │ - bcrypt compare   │
-└────────────────┘                           └───────────────────┘
-
-Access Token:  stored in memory / Authorization header
-Refresh Token: stored in HttpOnly cookie (secure, same-site)
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AuthService
+    
+    Client->>AuthService: POST /auth/login
+    Note right of AuthService: - verify password<br/>- bcrypt compare
+    AuthService-->>Client: accessToken (15m) & refreshToken (7d)
+    
+    Note over Client: Access Token: memory / Authorization header<br/>Refresh Token: HttpOnly cookie (secure, same-site)
 ```
 
 **Token payload:**
@@ -466,18 +449,17 @@ Every admin login stores a `LoginSession` document including IP, device, OS, bro
 
 ### 8.1 Architecture
 
-```
-Client                          SocketService (Server)
-  │                                      │
-  │── handshake (auth.token) ──────────► │
-  │                                      ├─ JWT verify
-  │                                      ├─ user lookup
-  │ ◄────────── connected ───────────── │
-  │                                      │
-  │── join roles (user/partner/admin) ─► │
-  │                                      ├─ join `user:{userId}`
-  │                                      ├─ join `role:{role}`
-  │                                      └─ if partner → join `partners`
+```mermaid
+sequenceDiagram
+    participant Client
+    participant SocketService
+    
+    Client->>SocketService: handshake (auth.token)
+    Note right of SocketService: JWT verify<br/>user lookup
+    SocketService-->>Client: connected
+    
+    Client->>SocketService: join roles (user/partner/admin)
+    Note right of SocketService: join room: user:{userId}<br/>join room: role:{role}<br/>if partner → join room: partners
 ```
 
 ### 8.2 Room Architecture
@@ -513,21 +495,17 @@ order:{orderId}      ← Order-specific updates and partner location
 
 ### 9.1 S3 Upload Architecture
 
-```
-Client
-  │
-  │── POST /upload ──────────────────────────────────────┐
-  │                                                       │
-  │                               multer-s3 middleware    │
-  │                               (stream directly to S3) │
-  │                                                       │
-  │                         ┌─────────────────────────┐   │
-  │                         │       AWS S3 Bucket      │   │
-  │  ◄── { url: "https://  │  (private, server-side   │   │
-  │   bucket.s3.region...  │    encrypted)             │   │
-  │   /key" }              └─────────────────────────┘   │
-  │                                                       │
-  └───────────────────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Express as Server (multer-s3)
+    participant S3 as AWS S3 Bucket
+
+    Client->>Express: POST /upload (multipart/form-data)
+    Express->>S3: Stream directly to S3
+    Note over S3: Private, server-side encrypted
+    S3-->>Express: Returns S3 object key/location
+    Express-->>Client: { url: "https://bucket.s3.region/key" }
 ```
 
 **Upload categories** (each with distinct S3 prefix):
@@ -540,45 +518,28 @@ Signed URLs (1-hour TTL) are generated on-demand for private documents via `@aws
 
 ### 9.2 AI/OCR KYC Pipeline
 
-```
-Partner uploads Aadhaar front/back images to S3
-                    │
-                    ▼
-        POST /partner/verify-aadhar
-                    │
-                    ▼
-        PartnerService.verifyAadhar()
-                    │
-       ┌────────────┴────────────────┐
-       │                             │
-       ▼                             ▼
-GeminiOCRService              OCRService (fallback)
-(Google Gemini 1.5 Flash)     (Tesseract.js local)
-       │
-       │ AWS SDK: GetObjectCommand
-       │ Fetch image from private S3 bucket
-       │ Convert to Base64
-       │
-       │ Gemini Vision API:
-       │ Structured prompt → JSON response
-       │
-       ▼
-Extracted: { aadharNumber, fullName, dob, gender, isVerified }
-                    │
-                    ▼
-         AES Encrypt sensitive fields
-         Store encrypted in MongoDB
-                    │
-          ┌─────────┴──────────────┐
-          │                        │
-          ▼                        ▼
-   aadharStatus =          aadharStatus =
-   'approved' (auto)       'manual_review'
-   if autoApprove          (admin reviews in
-   enabled                  admin dashboard)
-                    │
-                    ▼
-   Socket: broadcastToAdmins('PARTNER_AADHAAR_SUBMITTED')
+```mermaid
+flowchart TD
+    Start([Partner uploads Aadhaar images to S3<br>POST /partner/verify-aadhar]) --> PS[PartnerService.verifyAadhar]
+    
+    PS --> Switch{Config: useGeminiOCR?}
+    Switch -- Yes --> Gemini[GeminiOCRService<br>Google Gemini 1.5 Flash]
+    Switch -- No --> Tesseract[OCRService<br>Tesseract.js local fallback]
+    
+    Gemini --> AWSSDK[AWS SDK GetObjectCommand<br>Fetch image from S3, Convert to Base64]
+    AWSSDK --> GeminiAPI[Gemini Vision API<br>Structured prompt -> JSON response]
+    GeminiAPI --> ExtractedData
+    Tesseract --> ExtractedData
+    
+    ExtractedData[{Extracted: aadharNumber, fullName, dob, gender, isVerified}] --> Encrypt[AES Encrypt sensitive fields]
+    Encrypt --> Store[Store encrypted in MongoDB]
+    
+    Store --> CheckStatus{SystemSetting:<br>autoApprovePartners?}
+    CheckStatus -- Yes --> Approved[aadharStatus = 'approved']
+    CheckStatus -- No --> ManualReview[aadharStatus = 'manual_review'<br>Admin reviews in dashboard]
+    
+    Approved --> Broadcast[Socket: broadcastToAdmins<br>'PARTNER_AADHAAR_SUBMITTED']
+    ManualReview --> Broadcast
 ```
 
 **Encryption:** All extracted Aadhaar fields (number, name, DOB, gender) are AES-encrypted using a secret key before being stored in MongoDB. The `personalDocuments` fields store only the S3 URL of the image, never plaintext PII.
@@ -589,55 +550,53 @@ Extracted: { aadharNumber, fullName, dob, gender, isVerified }
 
 ### 10.1 Booking State Machine
 
-```
-                          Payment Gateway
-                               │
-   [User selects rooms]        │
-           │                   ▼
-           ▼           ┌──────────────┐
-   pending_payment ────►   confirmed  ├────► checked_in
-           │            └──────┬───────┘           │
-           │                   │                   ▼
-           │              PARTNER                checked_out
-           │              ACTION                      │
-           │                   │                     ▼
-           │                   ▼                  completed
-           │               rejected
-           │
-           └──── [User cancels] ──► cancelled
-                                         │
-                                   releaseRoomDates()
+```mermaid
+stateDiagram-v2
+    [*] --> pending_payment: User selects rooms
+    
+    pending_payment --> confirmed: Payment Gateway success
+    pending_payment --> cancelled: User cancels
+    
+    confirmed --> checked_in: Partner ACTION
+    confirmed --> rejected: Partner ACTION
+    
+    checked_in --> checked_out: Partner ACTION
+    checked_out --> completed: System transition
+    
+    cancelled --> [*]: releaseRoomDates()
+    rejected --> [*]: releaseRoomDates()
+    completed --> [*]
 ```
 
 ### 10.2 Price Calculation Algorithm
 
-```
-calculateBookingPrice(propertyId, checkIn, checkOut, rooms[], mealPlanId?, activityIds?, packageId?)
-    │
-    ├── nights = (checkOut - checkIn) in days
-    │
-    ├── if packageId:
-    │       roomTotal = package.pricePerPerson × totalGuests
-    │       (flat-rate package, no nightly calculation)
-    │
-    ├── else (standard booking):
-    │       for each room:
-    │           ├── checkAvailability(roomId, checkIn, checkOut)  ← blocks on conflict
-    │           └── calculateRoomPriceForRange():
-    │               for each date in range:
-    │                   price = customPricing[date] ?? room.basePricePerNight
-    │                   price += max(0, guests - 2) × room.extraPersonCharge
-    │
-    ├── mealPlanPrice = plan.pricePerPersonPerDay × totalGuests × nights
-    │
-    ├── activityTotal = Σ (activity.pricePerPerson × totalGuests)
-    │
-    ├── subtotal = roomTotal + mealPlanPrice + activityTotal
-    │
-    ├── taxes = subtotal × (SystemSetting.taxPercent / 100)
-    ├── platformFee = subtotal × (SystemSetting.platformFeePercent / 100)
-    │
-    └── finalPrice = subtotal + taxes + platformFee
+```mermaid
+flowchart TD
+    Start([calculateBookingPrice]) --> Nights[nights = checkOut - checkIn]
+    Nights --> CheckPackage{if packageId provided?}
+    
+    CheckPackage -- Yes --> PackageTotal[roomTotal = package.pricePerPerson × totalGuests]
+    CheckPackage -- No: Standard Booking --> LoopRooms{For each room}
+    
+    LoopRooms --> CheckAvail[checkAvailability]
+    CheckAvail --> CalcRoomPrice[calculateRoomPriceForRange]
+    
+    CalcRoomPrice --> LoopDates{For each date in range}
+    LoopDates --> DailyPrice[price = customPricing or basePrice<br/>+ extraPersonCharge * guests-2]
+    DailyPrice --> AccumulateRoomTotal[Accumulate into roomTotal]
+    AccumulateRoomTotal --> LoopRooms
+    
+    LoopRooms -- Done --> MealPlanPrice[mealPlanPrice = plan.pricePerPersonPerDay × totalGuests × nights]
+    PackageTotal --> MealPlanPrice
+    
+    MealPlanPrice --> ActivityTotal[activityTotal = Σ activity.pricePerPerson × totalGuests]
+    ActivityTotal --> Subtotal[subtotal = roomTotal + mealPlanPrice + activityTotal]
+    
+    Subtotal --> Taxes[taxes = subtotal × SystemSetting.taxPercent]
+    Subtotal --> Fee[platformFee = subtotal × SystemSetting.platformFeePercent]
+    
+    Taxes --> Final[finalPrice = subtotal + taxes + platformFee]
+    Fee --> Final
 ```
 
 ### 10.3 Availability & Date Blocking
@@ -663,20 +622,26 @@ checkAvailability(roomId, checkIn, checkOut):
 
 ### 11.1 Razorpay Integration Flow
 
-```
-User: POST /bookings/create
-    → BookingService creates booking (status: pending_payment)
-    → Dates blocked in RoomAvailability
-
-User: POST /payments/create-order
-    → PaymentService creates Razorpay order with finalPrice
-    → Returns { orderId, amount, currency, key }
-
-User: Frontend → Razorpay checkout
-
-User: POST /payments/verify
-    → Verify HMAC signature (razorpay_order_id + razorpay_payment_id)
-    → On success: booking status → confirmed, paymentStatus → paid
+```mermaid
+sequenceDiagram
+    participant User
+    participant LetsGoto
+    participant Razorpay
+    
+    User->>LetsGoto: POST /bookings/create
+    Note right of LetsGoto: Status: pending_payment<br/>Dates blocked
+    
+    User->>LetsGoto: POST /payments/create-order
+    LetsGoto->>Razorpay: Create Order
+    Razorpay-->>LetsGoto: rzp_order_id
+    LetsGoto-->>User: { orderId, amount, currency, key }
+    
+    User->>Razorpay: Frontend checkout
+    Razorpay-->>User: razorpay_payment_id & signature
+    
+    User->>LetsGoto: POST /payments/verify
+    Note right of LetsGoto: Verify HMAC signature
+    LetsGoto-->>User: Success (booking status → confirmed)
 ```
 
 ### 11.2 Platform Fees & Tax
@@ -701,32 +666,34 @@ Admin: POST /admin/bookings/:id/process-refund { approved: true }
 
 ### 12.1 Defence in Depth
 
-```
-Layer 1: Network
-    └── AWS Security Groups (port 80/443 only public, 22 IP-restricted)
-
-Layer 2: Transport
-    └── Nginx SSL termination (Let's Encrypt) + HTTP→HTTPS redirect
-
-Layer 3: Application
-    ├── Helmet → HSTS, CSP, X-Content-Type, X-Frame-Options
-    ├── CORS → explicit origin whitelist
-    ├── express-rate-limit → per-IP throttling
-    ├── Joi/Yup → input validation on all endpoints
-    ├── JWT → stateless auth with short-lived access tokens
-    ├── bcrypt → password hashing (cost factor 10+)
-    └── Maintenance middleware → global kill switch
-
-Layer 4: Data
-    ├── AES encryption → Aadhaar PII fields at-rest in MongoDB
-    ├── AWS Parameter Store → all secrets (never in code/env files)
-    ├── S3 bucket → private, signed URLs for document access
-    └── MongoDB Atlas → encrypted at rest, network-isolated
-
-Layer 5: Container
-    ├── Non-root user in Docker
-    ├── Alpine minimal base image
-    └── ECR image scanning (on push)
+```mermaid
+block-beta
+    columns 1
+    L1["Layer 1: Network<br/>AWS Security Groups (80/443 public, 22 restricted)"]
+    L2["Layer 2: Transport<br/>Nginx SSL termination + HTTP→HTTPS redirect"]
+    
+    block:L3
+        columns 1
+        Title3["Layer 3: Application"]
+        Items3["Helmet, CORS, Rate-Limit, Joi Validation, JWT, bcrypt, Kill Switch"]
+    end
+    
+    block:L4
+        columns 1
+        Title4["Layer 4: Data"]
+        Items4["AES encryption (PII), AWS Parameter Store, Private S3, Encrypted MongoDB"]
+    end
+    
+    block:L5
+        columns 1
+        Title5["Layer 5: Container"]
+        Items5["Non-root Docker user, Alpine base, ECR scanning"]
+    end
+    
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
 ```
 
 ### 12.2 Sensitive Data Handling
@@ -746,36 +713,33 @@ Layer 5: Container
 
 ### 13.1 AWS Infrastructure
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        AWS Cloud                                  │
-│                                                                    │
-│  ┌─────────────┐     ┌──────────────────────────────────────┐    │
-│  │  Route 53   │     │            EC2 (t3.medium)             │    │
-│  │  DNS        │────►│  ┌──────────────────────────────────┐ │    │
-│  └─────────────┘     │  │         Docker Compose            │ │    │
-│                      │  │  ┌──────────────┐  ┌──────────┐  │ │    │
-│  ┌─────────────┐     │  │  │  app container│  │  redis   │  │ │    │
-│  │  ACM / SSL  │     │  │  │  Node.js      │  │  container│  │ │    │
-│  │  Certs      │     │  │  └──────────────┘  └──────────┘  │ │    │
-│  └─────────────┘     │  └──────────────────────────────────┘ │    │
-│                      │  Nginx (reverse proxy + SSL)            │    │
-│  ┌─────────────┐     └──────────────────────────────────────┘    │
-│  │  ECR        │                     │                             │
-│  │ Docker Reg  │◄────────── CI/CD    │                             │
-│  └─────────────┘            push     │                             │
-│                                      ▼                             │
-│  ┌─────────────┐     ┌──────────────────────────────────────┐    │
-│  │  Parameter  │     │        AWS Amplify (3 apps)           │    │
-│  │  Store      │     │  letsgoto.in · partner · admin        │    │
-│  │  (secrets)  │     │  CDN + Auto Deploy + SSL              │    │
-│  └─────────────┘     └──────────────────────────────────────┘    │
-│                                                                    │
-│  ┌─────────────┐     ┌─────────────┐     ┌──────────────────┐    │
-│  │  S3 Bucket  │     │ CloudWatch  │     │  MongoDB Atlas   │    │
-│  │ (uploads)   │     │ (logs+alarms│     │  (external)      │    │
-│  └─────────────┘     └─────────────┘     └──────────────────┘    │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:white;
+    classDef app fill:#4285F4,stroke:#000000,stroke-width:1px,color:white;
+
+    Users((Users)) --> Route53["Route 53 (DNS)"]:::aws
+    Users --> Amplify["AWS Amplify<br/>(3 Frontends)"]:::aws
+    
+    Route53 --> EC2["EC2 (t3.medium)"]:::aws
+    ACM["ACM (SSL)"]:::aws -.-> Route53
+    
+    subgraph EC2_Instance["EC2 Instance"]
+        Nginx["Nginx Reverse Proxy"]
+        subgraph Docker["Docker Compose"]
+            App["Node.js API Container"]:::app
+            Redis["Redis Container"]
+        end
+        Nginx --> App
+        App <--> Redis
+    end
+    
+    ECR["AWS ECR<br/>Docker Registry"]:::aws -.->|Pull images| EC2
+    
+    App --> SS["Parameter Store<br/>Secrets"]:::aws
+    App --> S3["AWS S3<br/>Uploads"]:::aws
+    App --> CW["CloudWatch<br/>Logs & Metrics"]:::aws
+    App --> Mongo["MongoDB Atlas<br/>External Cluster"]
 ```
 
 ### 13.2 Docker Configuration
@@ -801,50 +765,16 @@ Environment variables are **never** in `docker-compose.yml`. They are pulled fro
 
 **Trigger:** Push to `main` branch
 
-```
-GitHub Push to main
-        │
-        ▼
-┌───────────────────┐
-│  Build & Test     │
-│  - npm ci         │
-│  - tsc            │
-│  - jest (unit)    │
-└────────┬──────────┘
-         │ success
-         ▼
-┌───────────────────┐
-│  Docker Build     │
-│  - Multi-stage    │
-│  - Tag: latest    │
-└────────┬──────────┘
-         │
-         ▼
-┌───────────────────┐
-│  Push to ECR      │
-│  - AWS creds      │
-│    from Secrets   │
-└────────┬──────────┘
-         │
-         ▼
-┌───────────────────────────┐
-│  Deploy to EC2 (SSH)      │
-│  - docker pull            │
-│  - docker-compose up -d   │
-│  - Health check (/health) │
-└────────┬──────────────────┘
-         │ health check PASS
-         ▼
-   ✅ Deployment complete
-         │
-         │ health check FAIL
-         ▼
-┌───────────────────┐
-│  Auto Rollback    │
-│  - docker pull    │
-│    previous tag   │
-│  - Slack alert    │
-└───────────────────┘
+```mermaid
+flowchart TD
+    Trigger([GitHub Push to main]) --> BuildTest[Build & Test<br/>npm ci, tsc, jest]
+    BuildTest -- Success --> DockerBuild[Docker Build<br/>Multi-stage, tag latest]
+    DockerBuild --> PushECR[Push to ECR<br/>using AWS creds]
+    PushECR --> Deploy[Deploy to EC2 via SSH<br/>docker pull, docker-compose up]
+    
+    Deploy --> HealthCheck{Health check<br/>GET /health}
+    HealthCheck -- Pass --> Success([✅ Deployment complete])
+    HealthCheck -- Fail --> Rollback[Auto Rollback<br/>Deploy previous tag, Slack alert]
 ```
 
 ### 14.2 Frontend Pipeline (AWS Amplify)
