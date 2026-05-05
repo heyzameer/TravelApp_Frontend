@@ -20,6 +20,10 @@ const PartnerVerifyOtp: React.FC = () => {
             return;
         }
 
+        if (email === "dummy@letsgoto.in") {
+            setOtp("123456");
+        }
+
         const timer = setInterval(() => {
             setResendTimer((prev) => (prev > 0 ? prev - 1 : 0));
         }, 1000);
@@ -90,6 +94,11 @@ const PartnerVerifyOtp: React.FC = () => {
                                 maxLength={6}
                                 required
                             />
+                            {email === "dummy@letsgoto.in" && (
+                                <p className="mt-3 p-3 bg-red-50 text-red-600 text-sm font-semibold rounded-lg text-center border border-red-100 animate-pulse">
+                                    Demo OTP: <span className="text-lg">123456</span>
+                                </p>
+                            )}
                         </div>
 
                         <button

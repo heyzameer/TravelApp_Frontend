@@ -76,6 +76,30 @@ const PartnerLogin: React.FC = () => {
                             "Get OTP"
                         )}
                     </button>
+
+                    <div className="relative flex items-center py-2">
+                        <div className="flex-grow border-t border-gray-200"></div>
+                        <span className="flex-shrink mx-4 text-gray-400 text-xs uppercase font-semibold">Or</span>
+                        <div className="flex-grow border-t border-gray-200"></div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setEmail("dummy@letsgoto.in");
+                            setTimeout(() => {
+                                const form = document.querySelector('form');
+                                if (form) form.requestSubmit();
+                            }, 100);
+                        }}
+                        className="w-full py-3 px-4 bg-white border-2 border-red-500 text-red-600 font-bold rounded-xl hover:bg-red-50 transition-all transform hover:-translate-y-0.5 duration-200 flex items-center justify-center gap-2"
+                        disabled={loading}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                        </svg>
+                        Use Dummy Credential
+                    </button>
                 </form>
 
                 <div className="mt-8 text-center text-sm">
